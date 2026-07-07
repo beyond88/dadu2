@@ -1,0 +1,365 @@
+import React, { useEffect, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { showMessage } from "react-native-flash-message";
+import { Image } from "expo-image";
+import { useGetCategoryQuery } from "../../../../../redux/features/common/commonApi";
+import Topbar from "../../../../../components/Topbar/Topbar";
+import { capitalize } from "../../../../../utils/helper";
+import FormSelect from "../../../../../components/Form/FormSelect";
+import FormRadio from "../../../../../components/Form/FormRadio";
+import { colors } from "../../../../../themes/colors";
+import Text from "../../../../../components/text/Text";
+import {
+  useDetailsCategoryQuery,
+  useUpdateCategoryMutation,
+} from "../../../../../redux/features/category/categoryApi";
+import Loading from "../../../../../components/Loading/Loading";
+
+//form validation schema
+const schema = yup
+  .object({
+    name: yup.string().required(),
+    status: yup.string().required(),
+  })
+  .required();
+
+const CategoryEdit = () => {
+  const [image, setImage] = useState();
+  const [fileName, setFileName] = useState(null);
+  //get slug
+  const { slug } = useLocalSearchParams();
+  //get category data
+  const { data: singleCategory, isSuccess: detailsIsSuccess } =
+    useDetailsCategoryQuery(slug);
+
+  //set form data
+  useEffect(() => {
+    if (singleCategory) {
+      setValue("name", singleCategory?.data?.name);
+      setValue("desc", singleCategory?.data?.desc);
+      setValue("status", singleCategory?.data?.status);
+      setImage(singleCategory?.data?.file_url);
+    }
+  }, [singleCategory, detailsIsSuccess]);
+  //edit category mutation
+
+  const [
+    updateCategory,
+    {
+      data: updateCategoryData,
+      isSuccess: updateIsSuccess,
+      isLoading: updateIsLoading,
+      isError: updateIsError,
+      error: updateError,
+    },
+  ] = useUpdateCategoryMutation();
+  //get form data
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+  const onSubmit = (data) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append(
+      "parent_id",
+      data.parentCategory || singleCategory?.data?.parent_id || ""
+    );
+    formData.append("desc", data.desc || "");
+    formData.append("status", data.status);
+    formData.append("_method", "PUT");
+
+    if (fileName !== null) {
+      formData.append("image", {
+        uri: image,
+        name: fileName,
+        type: "image/jpeg",
+      });
+    }
+    updateCategory({ id: slug, body: formData });
+  };
+
+  //category
+
+  const { data: categories } = useGetCategoryQuery();
+
+  const categoryItems = [];
+
+  const generateCategoryItems = (categories, level = 0) => {
+    categories?.forEach((category) => {
+      const indentation = Array(level + 1)
+        .fill("  ")
+        .join(""); // Adjust the number of spaces as needed
+      const label = `${indentation}${category.name}`;
+      categoryItems.push({ label: label, value: category.id });
+
+      if (category?.sub_category && category?.sub_category?.length > 0) {
+        generateCategoryItems(category?.sub_category, level + 1);
+      }
+    });
+  };
+
+  generateCategoryItems(categories?.data);
+
+  //pick image
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    var filename = result.assets[0].uri.substring(
+      result.assets[0].uri.lastIndexOf("/") + 1,
+      result.assets[0].uri.length
+    );
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+      setFileName(filename);
+    }
+  };
+
+  //show error & success message
+
+  useEffect(() => {
+    if (updateIsSuccess) {
+      showMessage({
+        message: updateCategoryData.message,
+        type: "success",
+      });
+      router.push("/admin/product/category");
+    }
+    if (updateIsError) {
+      showMessage({
+        message: updateError.data.message,
+        type: "danger",
+      });
+    }
+  }, [updateCategoryData, updateIsSuccess, updateIsError, updateError]);
+
+  return (
+    <>
+      {updateIsLoading && <Loading />}
+      <Topbar title="Edit Category" />
+      <View style={{ marginHorizontal: 20, marginBottom: 80 }}>
+        <ScrollView>
+          <View style={styles.formWrap}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label} preset="h2_sb">
+                Category Name<Text style={{ color: "#ff0000" }}> *</Text>
+              </Text>
+              <Controller
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={styles.textInput}
+                    onBlur={onBlur}
+                    value={value || ""}
+                    onChangeText={onChange}
+                  />
+                )}
+                name="name"
+              />
+              {errors.name && (
+                <Text style={styles.validationError}>
+                  {capitalize(errors.name?.message)}
+                </Text>
+              )}
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label} preset="h2_sb">
+                Parent Category<Text style={{ color: "#ff0000" }}> *</Text>
+              </Text>
+              <Controller
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <View style={{ zIndex: 1 }}>
+                    <FormSelect
+                      placeholder="Select Category"
+                      selectedValue={Number(singleCategory?.data?.parent_id)}
+                      items={categoryItems}
+                      value={value || Number(singleCategory?.data?.parent_id)}
+                      onChange={onChange}
+                      position={"TOP"}
+                      searchable={true}
+                      height={42}
+                      bg={colors.grayBg}
+                    />
+                  </View>
+                )}
+                name="parentCategory"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label} preset="h2_sb">
+                Description
+              </Text>
+              <Controller
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={styles.textInput}
+                    onBlur={onBlur}
+                    multiline={true}
+                    value={value || ""}
+                    onChangeText={onChange}
+                  />
+                )}
+                name="desc"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label} preset="h2_sb">
+                Thumb{" "}
+                <Text>
+                  (Supported type: png, jpg, jpeg | Max size: 300kb |
+                  Width:500px, Height:500px)
+                </Text>
+              </Text>
+              <Pressable onPress={pickImage}>
+                <Text preset="h3_r" style={styles.chooseFile}>
+                  Choose File
+                </Text>
+              </Pressable>
+              {image && (
+                <Image
+                  source={{ uri: image }}
+                  style={{
+                    width: "100%",
+                    height: 150,
+                    borderRadius: 5,
+                    marginTop: 10,
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label} preset="h2_sb">
+                Status<Text style={{ color: "#ff0000" }}>*</Text>
+              </Text>
+              <Controller
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormRadio
+                    onChange={onChange}
+                    value={value || ""}
+                    selectedValue={value || ""}
+                    items={[
+                      {
+                        label: "Active",
+                        value: "active",
+                      },
+                      {
+                        label: "Inactive",
+                        value: "inactive",
+                      },
+                    ]}
+                  />
+                )}
+                name="status"
+              />
+              {errors.status && (
+                <Text style={styles.validationError}>
+                  {capitalize(errors.status?.message)}
+                </Text>
+              )}
+            </View>
+            <View style={styles.formActionBtn}>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <Pressable
+                  onPress={handleSubmit(onSubmit)}
+                  style={styles.formBtn}
+                >
+                  <Text preset="h3" style={styles.btnText}>
+                    Submit
+                  </Text>
+                </Pressable>
+              </View>
+              <Link href="/admin/product/category">
+                <View style={[styles.formBtn, styles.cancelBtn]}>
+                  <Text preset="h3" style={styles.btnText}>
+                    Cancel
+                  </Text>
+                </View>
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </>
+  );
+};
+
+export default CategoryEdit;
+
+const styles = StyleSheet.create({
+  formWrap: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 5,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    color: colors.black,
+    marginBottom: 10,
+  },
+  textInput: {
+    backgroundColor: colors.grayBg,
+    height: 42,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  validationError: {
+    color: "#ff0000",
+    marginTop: 5,
+  },
+  formActionBtn: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  formBtn: {
+    backgroundColor: colors.themeColor,
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  btnText: {
+    color: colors.white,
+  },
+  cancelBtn: {
+    backgroundColor: colors.red,
+  },
+  chooseFile: {
+    backgroundColor: colors.themeColor,
+    color: colors.white,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    textAlign: "center",
+  },
+});

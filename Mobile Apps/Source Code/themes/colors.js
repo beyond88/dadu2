@@ -1,0 +1,15 @@
+export const colors = {
+  blue: "#38A4F8",
+  black: "#142A3E",
+  themeColor: "#10A0B1",
+  fontColor: "#4F5B6D",
+  white: "#FFFFFF",
+  pcolor: "#727F8B",
+  lineBorder: "#E9ECF2",
+  grayBg: "#F9F9F9",
+  green: "#42CA7F",
+  border: "#ADB5BD",
+  primaryShade: "#E3F2F2",
+  yellow: "#FF9944",
+  red: "#EC4561",
+};

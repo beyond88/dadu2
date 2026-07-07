@@ -1,0 +1,17 @@
+includes:
+    - ./vendor/larastan/larastan/extension.neon
+parameters:
+    paths:
+        - src
+        - tests
+
+    level: 6
+    reportStaticMethodSignatures: true
+    noEnvCallsOutsideOfConfig: true
+    viewDirectories:
+        - resources/views
+
+    parallel:
+        jobSize: 20
+        maximumNumberOfProcesses: 32
+        minimumNumberOfJobsPerProcess: 2

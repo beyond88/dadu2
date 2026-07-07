@@ -1,0 +1,24 @@
+{
+  "extends": "./node_modules/expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "app/_layout.js",
+    "app/+html.js",
+    "app/+not-found.js",
+    "app/modal.js",
+    "app/(tabs)/two.js",
+    "app/(tabs)/index.js",
+    "app/(tabs)/_layout.js"
+  ]
+}
