@@ -40,7 +40,7 @@ class PurchasePaymentController extends Controller
     {
         $request->validate([
             'date'         => 'required|date',
-            'payment_type' => 'required|string|max:100',
+            'payment_type' => 'nullable|string|max:100',
             'account_id'   => 'required|exists:accounts,id',
             'amount'       => 'required|numeric|min:0.01',
             'notes'        => 'nullable|string|max:500',

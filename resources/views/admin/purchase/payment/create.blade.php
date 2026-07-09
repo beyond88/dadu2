@@ -82,20 +82,6 @@
                         </div>
 
                         <div class="form-group col-md-6">
-                            <label>{{ __t('payment_type') }} <span class="text-danger">*</span></label>
-                            <select name="payment_type" class="form-control select2" required>
-                                <option value="">-- Select Payment Type --</option>
-                                <option value="cash"        {{ old('payment_type') == 'cash'        ? 'selected' : '' }}>Cash</option>
-                                <option value="bank"        {{ old('payment_type') == 'bank'        ? 'selected' : '' }}>Bank Transfer</option>
-                                <option value="cheque"      {{ old('payment_type') == 'cheque'      ? 'selected' : '' }}>Cheque</option>
-                                <option value="mobile"      {{ old('payment_type') == 'mobile'      ? 'selected' : '' }}>Mobile Banking</option>
-                                <option value="credit_card" {{ old('payment_type') == 'credit_card' ? 'selected' : '' }}>Credit Card</option>
-                                <option value="other"       {{ old('payment_type') == 'other'       ? 'selected' : '' }}>Other</option>
-                            </select>
-                            @error('payment_type') <p class="text-danger small mt-1">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div class="form-group col-md-6">
                             <label>{{ __t('amount') }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <div class="input-group-prepend">

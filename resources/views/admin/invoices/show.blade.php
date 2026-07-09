@@ -92,6 +92,7 @@
                 </table>
 
                 {{-- Items Table --}}
+                @php $hidePc = $invoice->items->isNotEmpty() && $invoice->items->every(fn($it) => $it->unit === 'kg'); @endphp
                 <table width="100%" cellpadding="0" cellspacing="0"
                        style="border-collapse:collapse; font-size:.8125rem; margin-bottom:0;">
                     <thead>
@@ -99,7 +100,9 @@
                             <th style="border:1px solid #999; padding:5px 6px; text-align:center; width:8%;">CODE</th>
                             <th style="border:1px solid #999; padding:5px 6px; text-align:left; width:28%;">Name of the Item</th>
                             <th style="border:1px solid #999; padding:5px 6px; text-align:center; width:5%;">Ctr</th>
+                            @unless($hidePc)
                             <th style="border:1px solid #999; padding:5px 6px; text-align:center; width:5%;">Pc</th>
+                            @endunless
                             <th style="border:1px solid #999; padding:5px 6px; text-align:center; width:6%;">Total</th>
                             <th style="border:1px solid #999; padding:5px 6px; text-align:right; width:10%;">Price</th>
                             <th style="border:1px solid #999; padding:5px 6px; text-align:right; width:12%;">Total</th>
@@ -126,7 +129,9 @@
                                     @endif
                                 </td>
                                 <td style="border:1px solid #999; padding:4px 6px; text-align:center;">{{ $ctr }}</td>
+                                @unless($hidePc)
                                 <td style="border:1px solid #999; padding:4px 6px; text-align:center;">{{ $pc }}</td>
+                                @endunless
                                 <td style="border:1px solid #999; padding:4px 6px; text-align:center;">{{ $item->quantity_display }} {{ $item->unit_label }}</td>
                                 <td style="border:1px solid #999; padding:4px 6px; text-align:right;">
                                     @if(!$item->is_free){{ currencySymbol().make2decimal($item->price) }}@if($item->unit_label)<small class="text-muted">/{{ $item->unit_label }}</small>@endif @endif
@@ -139,7 +144,7 @@
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="6" style="border:1px solid #999; padding:5px 8px; text-align:right; font-weight:700;">Total</td>
+                            <td colspan="{{ $hidePc ? 5 : 6 }}" style="border:1px solid #999; padding:5px 8px; text-align:right; font-weight:700;">Total</td>
                             <td style="border:1px solid #999; padding:5px 8px; text-align:right; font-weight:700;">
                                 {{ currencySymbol().make2decimal($invoice->total) }}
                             </td>

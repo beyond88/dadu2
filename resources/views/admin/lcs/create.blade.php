@@ -36,7 +36,7 @@
                                 <div class="form-group col-6 col-md-3">
                                     <label for="dollar_price">{{ __('custom.price_usd') }} <span class="text-danger">*</span></label>
                                     <input type="number" step="0.01" min="0" class="form-control form-control-sm text-right calc-input @error('dollar_price') is-invalid @enderror"
-                                           id="dollar_price" name="dollar_price" value="{{ old('dollar_price', 0) }}" required>
+                                           id="dollar_price" name="dollar_price" value="{{ old('dollar_price') }}" placeholder="{{ __('custom.price_usd') }}" required>
                                     @error('dollar_price')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
@@ -44,7 +44,7 @@
                                 <div class="form-group col-6 col-md-3">
                                     <label for="usd_rate">{{ __('custom.usd_rate') }} <span class="text-danger">*</span></label>
                                     <input type="number" step="0.0001" min="0" class="form-control form-control-sm text-right calc-input @error('usd_rate') is-invalid @enderror"
-                                           id="usd_rate" name="usd_rate" value="{{ old('usd_rate', 0) }}" required>
+                                           id="usd_rate" name="usd_rate" value="{{ old('usd_rate') }}" placeholder="{{ __('custom.usd_rate') }}" required>
                                     @error('usd_rate')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
@@ -55,7 +55,7 @@
                         {{-- Expenses entry panel --}}
                         <h4 class="mt-0 header-title mb-2">{{ __('custom.expenses') }}</h4>
                         <div id="expense-repeater" class="ic-entry-wrap mb-2">
-                            @php $oldExpenses = old('expenses', [['expense_name' => '', 'amount' => 0]]); @endphp
+                            @php $oldExpenses = old('expenses', [['expense_name' => '', 'amount' => '']]); @endphp
                             @foreach($oldExpenses as $index => $expense)
                                 <div class="form-row expense-row">
                                     <div class="form-group col-12 col-md-7">
@@ -161,7 +161,7 @@
                             <input type="text" name="expenses[${expenseIndex}][expense_name]" class="form-control form-control-sm" placeholder="{{ __('custom.expense_name') }}" required>
                         </div>
                         <div class="form-group col-8 col-md-4">
-                            <input type="number" step="0.01" min="0" name="expenses[${expenseIndex}][amount]" value="0" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}" required>
+                            <input type="number" step="0.01" min="0" name="expenses[${expenseIndex}][amount]" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}" required>
                         </div>
                         <div class="form-group col-4 col-md-1">
                             <button type="button" class="btn btn-danger btn-sm btn-block remove-expense"><i class="mdi mdi-delete"></i></button>

@@ -212,6 +212,16 @@
         .ic-toast { padding: 8px 12px !important; }
         .ic-toast .swal2-title { font-size: .85rem !important; margin: 0 !important; }
         .ic-toast .swal2-icon { width: 1.4em !important; height: 1.4em !important; margin: 0 8px 0 0 !important; }
+
+        /* Green success toast */
+        .ic-toast:has(.swal2-success) { background: #1cbb8c !important; }
+        .ic-toast:has(.swal2-success) .swal2-title { color: #fff !important; }
+        .ic-toast:has(.swal2-success) .swal2-timer-progress-bar { background: rgba(255, 255, 255, .6) !important; }
+        .ic-toast .swal2-success-ring { border-color: rgba(255, 255, 255, .7) !important; }
+        .ic-toast .swal2-success-line-tip,
+        .ic-toast .swal2-success-line-long { background-color: #fff !important; }
+        .ic-toast .swal2-success [class^='swal2-success-circular-line'],
+        .ic-toast .swal2-success-fix { background: transparent !important; }
     </style>
 @endpush
 
@@ -268,16 +278,6 @@
                     '</tr>';
             }
 
-            function renderGrid(transactions) {
-                if (!transactions || !transactions.length) {
-                    $('#txn-grid-body').html('<tr class="ic-grid-empty"><td colspan="6" class="text-center text-muted py-3">&mdash;</td></tr>');
-                    return;
-                }
-                var html = '';
-                transactions.forEach(function (t) { html += rowHtml(t); });
-                $('#txn-grid-body').html(html);
-            }
-
             // ---- Account Code lookup (typed + Enter, or chosen from dropdown) ----
             var lastCode = null;
 
@@ -297,7 +297,9 @@
                     $('#acc_name').val(a.name || '');
                     $('#current_balance').val(a.current_balance_formatted);
                     $('#new_balance').val('0.00');
-                    renderGrid(res.transactions);
+                    // Do NOT load previously saved transactions. The grid only
+                    // shows entries made in this session (since page load); a
+                    // page reload starts blank.
                     $('#debit').focus();
                 }).fail(function (xhr) {
                     lastCode = null;
