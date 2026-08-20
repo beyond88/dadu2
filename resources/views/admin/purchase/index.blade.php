@@ -48,15 +48,7 @@
     .datepicker.pu-dp .prev,
     .datepicker.pu-dp .next { font-size: 14px; padding: 6px; }
 
-    /* Inline action buttons (replaces the 3-dots dropdown) */
-    .ic-action-inline { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-items: center; }
-    .ic-action-inline form { margin: 0; }
-    .ic-action-inline .ic-act-btn {
-        padding: 3px 8px;
-        line-height: 1;
-        border-radius: 6px;
-    }
-    .ic-action-inline .ic-act-btn i { font-size: 13px; }
+    /* .ic-action-inline / .ic-act-btn now live in admin/css/custom.css */
 </style>
 @endpush
 

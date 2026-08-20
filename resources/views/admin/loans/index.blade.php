@@ -98,6 +98,7 @@
                             <thead class="thead-dark">
                                 <tr>
                                     <th>#</th>
+                                    <th class="ic-action-col">{{ __('custom.action') }}</th>
                                     <th>{{ __('custom.loan_no') }}</th>
                                     <th>{{ __('custom.borrower_name') }}</th>
                                     <th>{{ __('custom.opening_balance') }}</th>
@@ -106,13 +107,36 @@
                                     <th>{{ __('custom.loan_date') }}</th>
                                     <th>{{ __('custom.due_date') }}</th>
                                     <th>{{ __('custom.status') }}</th>
-                                    <th>{{ __('custom.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($loans as $i => $loan)
                                 <tr>
                                     <td>{{ $loans->firstItem() + $i }}</td>
+                                    <td class="ic-action-col">
+                                        <div class="ic-action-inline">
+                                            <a class="btn btn-sm btn-outline-success ic-act-btn" href="{{ route('admin.loans.show', $loan->id) }}">
+                                                <i class="fa fa-money-bill-wave"></i> {{ __('custom.make_payment') }}
+                                            </a>
+                                            @can('Loan Edit')
+                                            <a class="btn btn-sm btn-outline-primary ic-act-btn" href="{{ route('admin.loans.edit', $loan->id) }}">
+                                                <i class="fa fa-edit"></i> {{ __('custom.edit') }}
+                                            </a>
+                                            @endcan
+                                            @can('Loan Delete')
+                                            @if($loan->payments()->count() === 0)
+                                            <form action="{{ route('admin.loans.destroy', $loan->id) }}" method="POST" id="delete-form-{{ $loan->id }}">
+                                                @csrf @method('DELETE')
+                                                <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data"
+                                                    data-from-name="{{ $loan->loan_no }}"
+                                                    data-from-id="{{ $loan->id }}" type="button">
+                                                    <i class="mdi mdi-trash-can-outline"></i> {{ __('custom.delete') }}
+                                                </button>
+                                            </form>
+                                            @endif
+                                            @endcan
+                                        </div>
+                                    </td>
                                     <td><strong>{{ $loan->loan_no }}</strong></td>
                                     <td>
                                         {{ $loan->borrower_name }}
@@ -139,35 +163,6 @@
                                         <span class="badge {{ $loan->status_badge }}">
                                             {{ $loanStatuses[$loan->status] ?? $loan->status }}
                                         </span>
-                                    </td>
-                                    <td>
-                                        <div class="dropdown btn-group dropup">
-                                            <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                <i class="fas fa-ellipsis-v"></i>
-                                            </a>
-                                            <div class="dropdown-menu">
-                                                <a class="dropdown-item" href="{{ route('admin.loans.show', $loan->id) }}">
-                                                    <i class="fa fa-money-bill-wave"></i> {{ __('custom.make_payment') }}
-                                                </a>
-                                                @can('Loan Edit')
-                                                <a class="dropdown-item" href="{{ route('admin.loans.edit', $loan->id) }}">
-                                                    <i class="fa fa-edit"></i> {{ __('custom.edit') }}
-                                                </a>
-                                                @endcan
-                                                @can('Loan Delete')
-                                                @if($loan->payments()->count() === 0)
-                                                <form action="{{ route('admin.loans.destroy', $loan->id) }}" method="POST" id="delete-form-{{ $loan->id }}">
-                                                    @csrf @method('DELETE')
-                                                    <button class="dropdown-item text-danger delete-list-data"
-                                                        data-from-name="{{ $loan->loan_no }}"
-                                                        data-from-id="{{ $loan->id }}" type="button">
-                                                        <i class="mdi mdi-trash-can-outline"></i> {{ __('custom.delete') }}
-                                                    </button>
-                                                </form>
-                                                @endif
-                                                @endcan
-                                            </div>
-                                        </div>
                                     </td>
                                 </tr>
                                 @empty

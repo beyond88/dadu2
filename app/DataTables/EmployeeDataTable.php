@@ -28,16 +28,16 @@ class EmployeeDataTable extends DataTable
             ->addColumn('action', function ($item) {
                 $buttons = '';
 
-                $buttons .= '<a class="dropdown-item" href="' . route('customer.employee.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('customer.employee.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
 
 
-                $buttons .= '<a class="dropdown-item" href="' . route('customer.employee.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('customer.employee.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
 
 
                 if ($item->is_verified == Customer::STATUS_UNVERIFIED) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('customer.employee.verify', $item->id) . '" title="Edit"><i class="fa fa-user-check"></i> ' . __('custom.verify') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('customer.employee.verify', $item->id) . '" title="Edit"><i class="fa fa-user-check"></i> ' . __('custom.verify') . ' </a>';
                 } else {
-                    $buttons .= '<a class="dropdown-item" href="' . route('customer.employee.verify', $item->id) . '" title="Edit"><i class="fa fa-user-slash"></i> ' . __('custom.unverified') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('customer.employee.verify', $item->id) . '" title="Edit"><i class="fa fa-user-slash"></i> ' . __('custom.unverified') . ' </a>';
                 }
 
 
@@ -45,15 +45,10 @@ class EmployeeDataTable extends DataTable
                 $buttons .= '<form action="' . route('customer.employee.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
                     <input type="hidden" name="_token" value="' . csrf_token() . '">
                     <input type="hidden" name="_method" value="DELETE">
-                    <button class="dropdown-item text-danger delete-list-data" data-from-name="' . $item->full_name . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+                    <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="' . $item->full_name . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
                     ';
 
-                return '<div class="dropdown btn-group dropup">
-                <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-                    <div class="dropdown-menu">
-                    ' . $buttons . '
-                    </div>
-                </div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('avatar', function ($item) {
                     return '<img class="img-64" src="' . getStorageImage(Customer::FILE_STORE_PATH, $item->avatar) . '" alt="' . $item->name . '" />';
             })->editColumn('status', function ($item) {

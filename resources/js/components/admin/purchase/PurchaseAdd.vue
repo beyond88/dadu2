@@ -22,11 +22,9 @@
             <a v-if="item.product.is_variant == 1" href="javascript:void(0)">
               ({{ item.variation.sku }}) {{ item.product.name }}
               <span v-if="item.variation"> ({{ __("custom.variant") }} : {{ item.variation.name }})</span>
-              <span v-if="item.warehouse"> - {{ item.warehouse.name }}</span>
             </a>
             <a v-else href="javascript:void(0)">
               ({{ item.product.sku }}) {{ item.product.name }}
-              <span v-if="item.warehouse"> - {{ item.warehouse.name }}</span>
             </a>
           </li>
         </ul>
@@ -230,8 +228,13 @@ export default {
     searchSelectSku(e) {
       let query = e.target.value;
       if (query.length > 1) {
+        // Scope the suggestions to the warehouse picked on the form — the purchase is
+        // received into that warehouse, so stock rows of other warehouses only confuse.
+        const warehouse_id = document.getElementById("warehouse")?.value || null;
         axios
-          .get(`/admin/api/product-stock/search/name-sku/${encodeURIComponent(query)}`)
+          .get(`/admin/api/product-stock/search/name-sku/${encodeURIComponent(query)}`, {
+            params: warehouse_id ? { warehouse_id } : {},
+          })
           .then((res) => {
             this.searched_product = res.data;
           })

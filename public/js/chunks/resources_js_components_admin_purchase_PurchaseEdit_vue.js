@@ -137,7 +137,14 @@ __webpack_require__.r(__webpack_exports__);
       var _this3 = this;
       var query = e.target.value;
       if (query.length > 1) {
-        axios.get("/admin/api/product-stock/search/name-sku/".concat(query)).then(function (res) {
+        var _document$getElementB;
+        // Same warehouse scoping as the create form.
+        var warehouse_id = ((_document$getElementB = document.getElementById("warehouse")) === null || _document$getElementB === void 0 ? void 0 : _document$getElementB.value) || null;
+        axios.get("/admin/api/product-stock/search/name-sku/".concat(query), {
+          params: warehouse_id ? {
+            warehouse_id: warehouse_id
+          } : {}
+        }).then(function (res) {
           _this3.searched_product = res.data;
         });
       } else {

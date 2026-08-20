@@ -51,7 +51,7 @@
                         <div class="form-group col-sm-6">
                             <label for="">{{__('custom.phone')}} <span class="error">*</span></label>
                             <input type="text" id="phone" name="phone" class="form-control phone"
-                                value="{{ $supplier->phone ?? '+1' }}" required>
+                                value="{{ $supplier->phone ?? '+880' }}" required>
                             @error('phone')
                             <p class="error">{{ $message }}</p>
                             @enderror

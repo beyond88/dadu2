@@ -47,7 +47,12 @@
 
     // input felid
     if ($(".phone").length > 0) {
-        $(".phone").intlTelInput({});
+        // Bangladesh is the default country on every phone field. A field that
+        // already holds a number keeps that number's own country code.
+        $(".phone").intlTelInput({
+            initialCountry: "bd",
+            preferredCountries: ["bd"],
+        });
     }
 
     // DataTable wrap

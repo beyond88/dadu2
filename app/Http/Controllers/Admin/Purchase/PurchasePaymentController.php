@@ -118,10 +118,16 @@ class PurchasePaymentController extends Controller
     {
         // Get all purchases for this supplier
         $purchases = Purchase::where('supplier_id', $supplier->id)->get();
-        
-        $totalPurchased = $purchases->sum('total');
-        $totalPaid      = PurchasePayment::whereIn('purchase_id', $purchases->pluck('id'))->sum('amount');
-        $due            = $totalPurchased - $totalPaid;
+
+        // Same figures as the supplier list: the opening balance is part of what
+        // is owed (or already advanced), so it has to be in here too — otherwise
+        // this page caps payments below the real due.
+        $purchaseTotal = (float) $purchases->sum('total');
+        $paymentTotal  = (float) PurchasePayment::whereIn('purchase_id', $purchases->pluck('id'))->sum('amount');
+
+        $totalPurchased = $purchaseTotal + $supplier->openingDebt();
+        $totalPaid      = $paymentTotal + $supplier->openingAdvance();
+        $due            = max(0, $supplier->totalDue($purchaseTotal, $paymentTotal));
         $accounts       = Account::active()->get();
 
         set_page_meta(__t('make_payment') . ' — ' . $supplier->full_name);
@@ -136,17 +142,18 @@ class PurchasePaymentController extends Controller
     {
         $request->validate([
             'date'         => 'required|date',
-            'payment_type' => 'required|string|max:100',
+            'payment_type' => 'nullable|string|max:100',
             'account_id'   => 'required|exists:accounts,id',
             'amount'       => 'required|numeric|min:0.01',
             'notes'        => 'nullable|string|max:500',
         ]);
 
-        // Calculate total due for validation
-        $purchases = Purchase::where('supplier_id', $supplier->id)->get();
-        $totalPurchased = $purchases->sum('total');
-        $totalPaid      = PurchasePayment::whereIn('purchase_id', $purchases->pluck('id'))->sum('amount');
-        $totalDue       = $totalPurchased - $totalPaid;
+        // Total due for validation — includes the opening balance, so it matches
+        // the figure shown on the supplier list and on this page.
+        $purchases     = Purchase::where('supplier_id', $supplier->id)->get();
+        $purchaseTotal = (float) $purchases->sum('total');
+        $paymentTotal  = (float) PurchasePayment::whereIn('purchase_id', $purchases->pluck('id'))->sum('amount');
+        $totalDue      = $supplier->totalDue($purchaseTotal, $paymentTotal);
 
         if ($request->amount > $totalDue) {
             flash(__t('payment_amount_exceeds_due'))->error();
@@ -184,6 +191,18 @@ class PurchasePaymentController extends Controller
                     ]);
 
                     $paymentAmount -= $allocation;
+                }
+
+                // Whatever is left over settles the opening balance debt. That
+                // debt predates every purchase, so it has no purchase row to
+                // hang a payment on — it is cleared by moving opening_balance
+                // back towards zero instead, which keeps the money the account
+                // was debited fully accounted for.
+                if ($paymentAmount > 0 && $supplier->openingDebt() > 0) {
+                    $settled = min($paymentAmount, $supplier->openingDebt());
+                    $supplier->opening_balance = round((float) $supplier->opening_balance + $settled, 2);
+                    $supplier->save();
+                    $paymentAmount -= $settled;
                 }
 
                 // Deduct from account once (total amount)

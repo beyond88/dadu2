@@ -25,22 +25,17 @@ class CustomerInvoiceDataTable extends DataTable
             ->eloquent($query)
             ->addColumn('action', function ($item) {
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('customer.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('customer.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
                 if ($item->status != Invoice::STATUS_PENDING) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('customer.products-return-request.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-secondary ic-act-btn" href="' . route('customer.products-return-request.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
                 }
 
-                $buttons .= '<a class="dropdown-item view-customer-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="View Payment"><i class="mdi mdi-cash-multiple"></i> ' . __('custom.view_payment') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn view-customer-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="View Payment"><i class="mdi mdi-cash-multiple"></i> ' . __('custom.view_payment') . ' </a>';
 
-                $buttons .= '<a class="dropdown-item" href="' . route('customer.invoices.download', $item->id) . '" title="Download"><i class="mdi mdi-briefcase-download-outline"></i> ' . __('custom.download') . ' </a>';
-                $buttons .= '<a class="dropdown-item live-invoice-payment" data-invoice-token="' . $item->token . '" href="#" title="Live Link"><i class="mdi mdi-web"></i> ' . __('custom.link') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('customer.invoices.download', $item->id) . '" title="Download"><i class="mdi mdi-briefcase-download-outline"></i> ' . __('custom.download') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn live-invoice-payment" data-invoice-token="' . $item->token . '" href="#" title="Live Link"><i class="mdi mdi-web"></i> ' . __('custom.link') . ' </a>';
 
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('id', function ($item) {
                 return '<a class="btn btn-link" href="' . route('customer.invoices.show', $item->id) . '" title="Show">' . make8digits($item->id) . ' </a>';
             })->editColumn('customer', function ($item) {

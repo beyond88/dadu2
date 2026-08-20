@@ -39,7 +39,7 @@
                     </div>
                     <div class="form-group col-xl-4 col-lg-6">
                         <label>{{ __('custom.phone') }}</label>
-                        <input type="tel" value="{{ old('phone') ? old('phone') : '+1' }}" name="phone"
+                        <input type="tel" value="{{ old('phone') ? old('phone') : '+880' }}" name="phone"
                             class="form-control phone">
 
                         @error('phone')

@@ -25,18 +25,13 @@ class TransactionDataTable extends DataTable
             ->eloquent($query)
             ->addColumn('action', function ($item) {
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.transactions.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.transactions.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
                 $buttons .= '<form action="' . route('admin.transactions.destroy', $item->id) . '" method="POST" class="d-inline" onsubmit="return confirm(\'' . __('custom.are_you_sure_to_delete') . '\');">
                                 ' . csrf_field() . method_field('DELETE') . '
-                                <button type="submit" class="dropdown-item text-danger"><i class="fa fa-trash"></i> ' . __('custom.delete') . '</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger ic-act-btn"><i class="fa fa-trash"></i> ' . __('custom.delete') . '</button>
                              </form>';
                 
-                return '<div class="dropdown btn-group dropup">
-            <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-            <div class="dropdown-menu">
-            ' . $buttons . '
-            </div>
-            </div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('type', function ($item) {
                 $badgeClass = in_array($item->type, ['add', 'transfer_in', 'invoice_payment', 'due_collection', 'opening_balance']) ? 'badge-success' : 

@@ -26,6 +26,41 @@
 
     <div class="row">
         <div class="col-md-8">
+            @if($lc->items->count())
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="mt-0 header-title mb-4">{{ __('custom.lc_breakdown') }}</h4>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>{{ __('custom.lc_name') }}</th>
+                                    <th class="text-right">{{ __('custom.price_usd') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($lc->items as $index => $item)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $item->name }}</td>
+                                    <td class="text-right">${{ number_format($item->dollar_price, 2) }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2" class="text-right">{{ __('custom.total_lc_price') }}</th>
+                                    <th class="text-right">${{ number_format($lc->dollar_price, 2) }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <div class="card">
                 <div class="card-body">
                     <h4 class="mt-0 header-title mb-4">{{ __('custom.expense_breakdown') }}</h4>
@@ -76,7 +111,7 @@
                         </tr>
                         <tr>
                             <td>{{ __('custom.usd_rate') }}</td>
-                            <td class="text-right"><strong>{{ number_format($lc->usd_rate, 4) }}</strong></td>
+                            <td class="text-right"><strong>{{ number_format($lc->usd_rate, 2) }}</strong></td>
                         </tr>
                         <tr>
                             <td>{{ __('custom.lc_amount_bdt') }}</td>

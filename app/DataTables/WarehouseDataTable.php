@@ -26,25 +26,20 @@ class WarehouseDataTable extends DataTable
             ->eloquent($query)
             ->addColumn('action', function ($item) {
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.warehouses.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.warehouses.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
                 if (auth()->user()->can('Edit Warehouse')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.warehouses.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.warehouses.show-storage-store-and-out', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show_storage_history') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.warehouses.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.warehouses.show-storage-store-and-out', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show_storage_history') . ' </a>';
                 }
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.warehouse.barcode.download', $item->id) . '" title="Download Barcode"><i class="mdi mdi-download"></i> ' . __('custom.download_barcode') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('admin.warehouse.barcode.download', $item->id) . '" title="Download Barcode"><i class="mdi mdi-download"></i> ' . __('custom.download_barcode') . ' </a>';
                 if (auth()->user()->can('Delete Warehouse')) {
                     $buttons .= '<form action="' . route('admin.warehouses.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
 <input type="hidden" name="_token" value="' . csrf_token() . '">
 <input type="hidden" name="_method" value="DELETE">
-<button class="dropdown-item text-danger delete-list-data" data-from-name="'. $item->name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+<button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="'. $item->name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
 ';
                 }
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('status', function ($item) {
                 $badge = $item->status == Warehouse::STATUS_ACTIVE ? "badge-success" : "badge-danger";
                 $data = '<span class="badge ' . $badge . '">' . Str::upper($item->status) . '</span>';

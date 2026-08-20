@@ -182,6 +182,11 @@
                         <li class="has-submenu">
                             <a href="#" class="ic-javascriptVoid">{{ __('custom.reports') }}</a>
                             <ul class="submenu">
+                                @can('Customer Ledger Report')
+                                <li>
+                                    <a href="{{ route('admin.report.customer-ledger') }}">{{__('custom.customer_ledger_report')}}</a>
+                                </li>
+                                @endcan
                                 @can('Expenses Report')
                                 <li>
                                     <a href="{{ route('admin.reports.expenses') }}">{{__('custom.expenses_report')}}</a>

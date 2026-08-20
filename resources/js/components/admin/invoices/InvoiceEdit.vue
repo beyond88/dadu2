@@ -208,7 +208,9 @@
                                                 <div v-if="item.is_weight_based && item.kg_per_barrel > 0" class="mt-1">
                                                     <select class="form-control form-control-sm border"
                                                         :value="item.unit" @change="changeUnit(index, $event.target.value)">
-                                                        <option value="barrel">{{ item.barrel_label || 'Barrel' }}</option>
+                                                        <!-- Barrel is hidden while less than one full barrel is left;
+                                                             the product keeps both units in its own config. -->
+                                                        <option value="barrel" v-if="canUseBarrel(item)">{{ item.barrel_label || 'Barrel' }}</option>
                                                         <option value="kg">{{ __("custom.kg") }}</option>
                                                     </select>
                                                     <small class="text-muted d-block mt-1">
@@ -223,16 +225,19 @@
                                                 <input :min="item.is_weight_based ? 0 : 1" :step="item.is_weight_based ? 'any' : 1"
                                                     type="number" v-model="item.price"
                                                     @input="updatePrice($event, index)"
+                                                    :style="{ width: numInputWidth(item.price, 4) }"
                                                     class="form-control text-center" />
                                             </td>
                                             <td>
                                                 <input :min="item.is_weight_based ? 0 : 1" :step="item.is_weight_based ? 'any' : 1"
                                                     type="number" v-model="item.quantity"
                                                     @input="updateQuantity($event, index)"
+                                                    :style="{ width: numInputWidth(item.quantity) }"
                                                     class="form-control text-center" />
                                             </td>
                                             <td>
                                                 <input min="0" type="number" v-model="item.discount"
+                                                    :style="{ width: numInputWidth(item.discount) }"
                                                     class="form-control text-center" />
                                             </td>
                                             <td>
@@ -874,8 +879,10 @@ export default {
             return due > 0 ? due : 0;
         },
         balanceAfterInvoice: function () {
+            // Only the balance actually applied on this invoice is spent. An
+            // unpaid remainder stays a due — it is never taken off the balance.
             const balanceUsed = parseFloat(this.formData.balance_amount) || 0;
-            return this.customerCurrentBalance - balanceUsed - this.invoiceDue;
+            return this.customerCurrentBalance - balanceUsed;
         },
     },
     methods: {
@@ -912,7 +919,7 @@ export default {
                     let product_stock = res.data.data;
 
                     if (product_stock) {
-                        if (!product_stock.backorders_allowed && product_stock.quantity < 1) {
+                        if (!this.hasSellableStock(product_stock)) {
                             this.$swal("Error!!!", `Out of stock`, "warning");
                             // Empty search field
                             this.search = "";
@@ -1069,6 +1076,10 @@ export default {
             if (!item.is_weight_based || !(item.kg_per_barrel > 0) || item.unit === unit) {
                 return;
             }
+            // Guard the same rule the dropdown shows: no barrel sale below one barrel.
+            if (unit === 'barrel' && !this.canUseBarrel(item)) {
+                return;
+            }
             if (unit === 'kg') {
                 item.quantity = this.roundTo(Number(item.quantity) * item.kg_per_barrel, 2);
                 item.price = this.roundTo(Number(item.price_per_barrel) / item.kg_per_barrel, 2);
@@ -1084,6 +1095,49 @@ export default {
                 ? barrels * item.kg_per_barrel
                 : barrels;
         },
+        // Barrel selling needs at least one full barrel in stock. A line that is
+        // already on barrel keeps the option so lines saved earlier stay editable.
+        canUseBarrel(item) {
+            if (!item.is_weight_based || !(item.kg_per_barrel > 0)) {
+                return true;
+            }
+            return item.backorders_allowed || Number(item.stock) >= 1 || item.unit === 'barrel';
+        },
+        // Anything above zero is sellable. Sold-by-weight stock is held in
+        // barrels, so a leftover of less than one barrel is still sellable in kg
+        // — measuring it in barrels is what used to read as "out of stock".
+        hasSellableStock(product_stock) {
+            if (product_stock.backorders_allowed) {
+                return true;
+            }
+            const p = product_stock.product || {};
+            const barrels = Number(product_stock.quantity) || 0;
+
+            if (p.is_weight_based == 1 && Number(p.kg_per_barrel) > 0) {
+                return barrels * Number(p.kg_per_barrel) > 0;
+            }
+            return barrels >= 1;
+        },
+        // A freshly added line falls back to kg when less than one full barrel is
+        // left. Lines loaded from the saved invoice keep the unit they were sold in.
+        applyStockUnitRestriction(index) {
+            const item = this.formData.items[index];
+            if (!item || !item.is_weight_based || !(item.kg_per_barrel > 0)) {
+                return;
+            }
+            if (item.backorders_allowed || Number(item.stock) >= 1) {
+                return;
+            }
+            if (item.unit !== 'kg') {
+                item.unit = 'barrel';
+                this.changeUnit(index, 'kg');
+                item.quantity = 1;
+            }
+            const maxKg = this.roundTo(this.availableInUnit(item), 2);
+            if (Number(item.quantity) > maxKg) {
+                item.quantity = maxKg;
+            }
+        },
         addNewItem(product_stock) {
             let found = this.formData.items.findIndex((p) => p.id == product_stock.id);
             if (found >= 0) {
@@ -1098,7 +1152,7 @@ export default {
                 }
                 item.quantity = Number(item.quantity) + 1;
             } else {
-                if (!product_stock.backorders_allowed && product_stock.quantity < 1) {
+                if (!this.hasSellableStock(product_stock)) {
                     this.$swal("Error!!!", `Out of stock`, "warning");
                     // Empty search field
                     this.search = "";
@@ -1149,6 +1203,8 @@ export default {
                         discount_type: "percent",
                     });
                 }
+                // Below one full barrel the new line can only be sold in kg.
+                this.applyStockUnitRestriction(this.formData.items.length - 1);
             }
         },
         deleteItem: function (index) {
@@ -1168,6 +1224,12 @@ export default {
                 return ppb / item.kg_per_barrel;
             }
             return Number(item.price);
+        },
+        // Numeric cart inputs are sized to their content so long values
+        // (big quantities/prices) stay fully readable instead of being clipped.
+        numInputWidth(value, min = 3) {
+            const length = String(value ?? "").length;
+            return `calc(${Math.max(min, length)}ch + 2.5rem)`;
         },
         updateQuantity(event, index) {
             const value = event.target.valueAsNumber;

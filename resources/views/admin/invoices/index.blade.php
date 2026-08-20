@@ -91,6 +91,59 @@ $(document).ready(function () {
             window.LaravelDataTables['dataTableBuilder'].ajax.reload();
         });
 
+    /* Row "Print" action: render the invoice in an offscreen iframe and print
+       that, so the dialog opens straight from the list instead of navigating
+       away to /admin/invoices/{id}?print=1. */
+    var $printFrame = null;
+
+    function cleanUpPrintFrame() {
+        if ($printFrame) {
+            $printFrame.remove();
+            $printFrame = null;
+        }
+    }
+
+    $(document).on('click', '.js-invoice-print', function (e) {
+        e.preventDefault();
+
+        var url = $(this).attr('href');
+        if (!url) {
+            return;
+        }
+
+        // Close the open row dropdown so it is not left hanging behind the dialog.
+        $(this).closest('.dropdown-menu').removeClass('show');
+
+        cleanUpPrintFrame();
+
+        $printFrame = $('<iframe>', {
+            'aria-hidden': 'true',
+            css: { position: 'fixed', width: 0, height: 0, border: 0, visibility: 'hidden' }
+        }).appendTo('body');
+
+        $printFrame.on('load', function () {
+            var frame = this.contentWindow;
+
+            try {
+                // Drop the frame once the dialog is dismissed (saved or cancelled).
+                frame.addEventListener('afterprint', cleanUpPrintFrame, { once: true });
+
+                if (typeof frame.printInvoiceNow === 'function') {
+                    frame.printInvoiceNow();
+                } else {
+                    frame.focus();
+                    frame.print();
+                }
+            } catch (err) {
+                // Anything unexpected: fall back to the plain page.
+                cleanUpPrintFrame();
+                window.location.href = url;
+            }
+        });
+
+        $printFrame.attr('src', url);
+    });
+
     window.LaravelDataTables['dataTableBuilder'].buttons('.buttons-print').action(function (e, dt) {
         var url = dt.ajax.url() || '';
         var params = dt.ajax.params();

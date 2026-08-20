@@ -78,8 +78,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="phone">{{ __('custom.phone') }}</label>
-                                    <input type="text" class="form-control @error('phone') is-invalid @enderror" 
-                                           id="phone" name="phone" value="{{ old('phone', $bank->phone) }}" 
+                                    <input type="text" class="form-control phone @error('phone') is-invalid @enderror"
+                                           id="phone" name="phone" value="{{ old('phone', $bank->phone) ?: '+880' }}"
                                            placeholder="{{ __('custom.enter_phone_number') }}">
                                     @error('phone')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -114,8 +114,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="contact_person_phone">{{ __('custom.contact_person_phone') }}</label>
-                                    <input type="text" class="form-control @error('contact_person_phone') is-invalid @enderror" 
-                                           id="contact_person_phone" name="contact_person_phone" value="{{ old('contact_person_phone', $bank->contact_person_phone) }}" 
+                                    <input type="text" class="form-control phone @error('contact_person_phone') is-invalid @enderror"
+                                           id="contact_person_phone" name="contact_person_phone" value="{{ old('contact_person_phone', $bank->contact_person_phone) ?: '+880' }}"
                                            placeholder="{{ __('custom.enter_contact_person_phone') }}">
                                     @error('contact_person_phone')
                                         <span class="invalid-feedback">{{ $message }}</span>

@@ -111,7 +111,7 @@
                             </div>
                             <div class="form-group col-6 col-md-3">
                                 <label>{{ __('custom.new_balance') }}</label>
-                                <input type="text" id="new_balance" class="form-control form-control-sm ic-readbox text-right font-weight-bold text-success" value="0.00" readonly>
+                                <input type="text" id="new_balance" class="form-control form-control-sm ic-readbox text-right font-weight-bold" value="0.00" readonly>
                             </div>
                         </div>
                     </div>
@@ -248,6 +248,17 @@
                 return (parseFloat(v) || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             }
 
+            // Balances are formatted from the numeric value so an overdrawn
+            // account always keeps its minus sign, and shown in red when below
+            // zero — a negative balance used to render like a healthy one.
+            function setBalance(selector, value) {
+                var amount = parseFloat(value) || 0;
+                $(selector)
+                    .val(money(amount))
+                    .toggleClass('text-danger', amount < 0)
+                    .toggleClass('text-success', amount > 0);
+            }
+
             // Small, unobtrusive toast for feedback (top-right, auto-dismiss)
             var Toast = Swal.mixin({
                 toast: true,
@@ -261,7 +272,8 @@
             function resetSummary() {
                 $('#account_id').val('');
                 $('#account_no, #bank_name, #acc_name').val('');
-                $('#current_balance, #new_balance').val('0.00');
+                setBalance('#current_balance', 0);
+                setBalance('#new_balance', 0);
                 $('#txn-grid-body').html(
                     '<tr class="ic-grid-empty"><td colspan="6" class="text-center text-muted py-3">' + lang.loadFirst + '</td></tr>'
                 );
@@ -295,8 +307,8 @@
                     $('#account_no').val(a.account_number || '');
                     $('#bank_name').val(a.bank_name || '');
                     $('#acc_name').val(a.name || '');
-                    $('#current_balance').val(a.current_balance_formatted);
-                    $('#new_balance').val('0.00');
+                    setBalance('#current_balance', a.current_balance);
+                    setBalance('#new_balance', a.current_balance);
                     // Do NOT load previously saved transactions. The grid only
                     // shows entries made in this session (since page load); a
                     // page reload starts blank.
@@ -415,8 +427,8 @@
                         $('#txn-grid-body .ic-grid-empty').remove();
                         $('#txn-grid-body').prepend(rowHtml(res.transaction));
                         // Update balances instantly
-                        $('#current_balance').val(res.new_balance_formatted);
-                        $('#new_balance').val(res.new_balance_formatted);
+                        setBalance('#current_balance', res.new_balance);
+                        setBalance('#new_balance', res.new_balance);
                         // Advance transaction no, reset entry inputs
                         $('#transaction_no').val((parseInt(res.transaction.id, 10) || 0) + 1);
                         $('#debit, #credit, #description').val('');

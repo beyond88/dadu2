@@ -40,7 +40,7 @@
                         </div>
                         <div class="form-group col-lg-4 col-md-6">
                             <label>{{ __('custom.phone') }}</label>
-                            <input type="tel" id="phone" value="{{ $user->phone ?? '+1' }}" name="phone"
+                            <input type="tel" id="phone" value="{{ $user->phone ?? '+880' }}" name="phone"
                                 class="form-control phone">
 
                             @error('phone')

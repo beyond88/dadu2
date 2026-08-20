@@ -295,6 +295,10 @@ Route::namespace('Admin')->prefix('admin')->as('admin.')->middleware(['auth', 'i
     Route::get('reports/supplier-payment-history', 'Report\SupplierPaymentReportController@index')->name('report.supplier-payment-history');
     Route::get('reports/supplier-payment-history/export', 'Report\SupplierPaymentReportController@export')->name('report.supplier-payment-history.export');
 
+    // Customer Ledger / Due Report
+    Route::get('reports/customer-ledger', 'Report\CustomerLedgerReportController@index')->name('report.customer-ledger');
+    Route::get('reports/customer-ledger/export', 'Report\CustomerLedgerReportController@export')->name('report.customer-ledger.export');
+
     // SYSTEM SETTINGS
     Route::get('system-settings', 'Settings\SystemSettingsController@edit')->name('system-settings.edit');
     Route::post('system-settings', 'Settings\SystemSettingsController@update')->name('system-settings.update');

@@ -65,7 +65,7 @@
                             <div class="form-group col-sm-6">
                                 <label for="">{{ __('custom.phone') }} <span class="error">*</span></label>
                                 <input type="text" name="phone" class="form-control phone"
-                                    value="{{ old('phone') ?? '+1' }}" required>
+                                    value="{{ old('phone') ?? '+880' }}" required>
                                 @error('phone')
                                     <p class="error">{{ $message }}</p>
                                 @enderror
@@ -93,8 +93,8 @@
                                 <label for="">{{ __('custom.opening_balance') }}</label>
                                 <input type="number" step="0.01" name="opening_balance" class="form-control"
                                     value="{{ old('opening_balance') ?? 0 }}"
-                                    placeholder="e.g. -500 for negative balance">
-                                <small class="text-muted">Use a negative value (e.g. -500) for customers with outstanding dues.</small>
+                                    placeholder="e.g. 5000">
+                                <small class="text-muted">Prepaid credit the customer holds. It is only spent when applied as a payment on an invoice — unpaid invoices stay as Total Due.</small>
                                 @error('opening_balance')
                                     <p class="error">{{ $message }}</p>
                                 @enderror
@@ -232,7 +232,7 @@
                                     <div class="form-group col-sm-6 b_hide_same">
                                         <label for="">{{ __('custom.phone') }}</label>
                                         <input type="text" name="b_phone" class="form-control phone"
-                                            value="{{ old('b_phone') ?? '+1' }}">
+                                            value="{{ old('b_phone') ?? '+880' }}">
                                         @error('b_phone')
                                             <p class="error">{{ $message }}</p>
                                         @enderror

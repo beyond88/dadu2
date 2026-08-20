@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Warehouse;
 use Illuminate\Support\Str;
 use App\Models\ProductStock;
+use App\Models\ProductStockHistory;
 use Illuminate\Http\Request;
 use App\Exports\SalesReportExport;
 use Illuminate\Support\Collection;
@@ -389,16 +390,60 @@ class ReportsController extends Controller
 
     public function warehouseStock(Request $request)
     {
-
         set_page_meta(__('custom.warehouse_stock_report'));
 
-        $report_range = "All time";
-
-        $products = $this->productServices->productAllWarehouseStock();
         $warehouses = Warehouse::query()->pluck('name', 'id');
-//        dd($warehouses);
 
-        return view('admin.reports.warehouse-stock', compact('report_range', 'products', 'warehouses'));
+        // "To date" always defaults to today; the report only runs once a
+        // warehouse is picked. Same rows as the warehouse storage store/out page.
+        // "all" runs the report across every warehouse instead of just one.
+        $warehouseId = $request->input('warehouse');
+        $allWarehouses = $warehouseId === 'all';
+        $toDate      = $request->filled('to_date') ? $request->to_date : now()->toDateString();
+        $fromDate    = $request->input('from_date');
+
+        $histories         = null;
+        $selectedWarehouse = null;
+        $report_range      = '';
+        $totalIn           = 0;
+        $totalOut          = 0;
+
+        // Histories can run into thousands of rows, so the table is paginated.
+        $perPage = (int) $request->input('per_page', 50);
+        $perPage = in_array($perPage, [25, 50, 100, 200, 500]) ? $perPage : 50;
+
+        if ($warehouseId) {
+            $to    = Carbon::parse($toDate)->endOfDay();
+            $query = ProductStockHistory::with(['product.weight_unit', 'createdBy']);
+
+            if ($allWarehouses) {
+                // No warehouse constraint — the table shows which warehouse each row belongs to.
+                $query->whereNotNull('warehouse_id');
+            } else {
+                $selectedWarehouse = Warehouse::find($warehouseId);
+                $query->where('warehouse_id', $warehouseId);
+            }
+
+            if ($fromDate) {
+                $from = Carbon::parse($fromDate)->startOfDay();
+                $query->whereBetween('created_at', [$from, $to]);
+                $report_range = $from->format('d M Y') . ' - ' . $to->format('d M Y');
+            } else {
+                $query->where('created_at', '<=', $to);
+                $report_range = 'Up to ' . $to->format('d M Y');
+            }
+
+            // Totals cover the whole filtered range, not just the current page.
+            $totalIn  = (clone $query)->where('type', ProductStockHistory::TYPE_IN)->sum('quantity');
+            $totalOut = (clone $query)->where('type', ProductStockHistory::TYPE_OUT)->sum('quantity');
+
+            $histories = $query->latest()->paginate($perPage)->withQueryString();
+        }
+
+        return view('admin.reports.warehouse-stock', compact(
+            'report_range', 'warehouses', 'histories', 'selectedWarehouse', 'allWarehouses',
+            'fromDate', 'toDate', 'perPage', 'totalIn', 'totalOut'
+        ));
     }
     public function expiredProducts(Request $request)
     {

@@ -35,7 +35,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="investor_phone">{{ __('custom.investor_phone') }}</label>
-                            <input type="text" name="investor_phone" id="investor_phone" class="form-control @error('investor_phone') is-invalid @enderror" value="{{ old('investor_phone') }}">
+                            <input type="text" name="investor_phone" id="investor_phone" class="form-control phone @error('investor_phone') is-invalid @enderror" value="{{ old('investor_phone') ?: '+880' }}">
                             @error('investor_phone')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror

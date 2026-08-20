@@ -126,6 +126,17 @@ class Invoice extends Model
         return $this->hasMany(InvoicePayment::class, 'invoice_id');
     }
 
+    /**
+     * What is still owed on this invoice: its total minus every payment actually
+     * recorded against it — cash, bank and customer-balance alike. The customer's
+     * opening balance never offsets an invoice on its own; it only counts here
+     * once it has been applied as a balance payment on this invoice.
+     */
+    public function dueAmount(): float
+    {
+        return round((float) $this->total - (float) $this->payments()->sum('amount'), 2);
+    }
+
     // MUTATORS & ACCESSORS
     /**
      * getTotalPaidAttribute

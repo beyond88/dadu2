@@ -36,10 +36,11 @@ class PurchaseDataTable extends DataTable
                     $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.purchases.show', $item->id) . '">' . __t('show') . '</a>';
                 }
                 if ($item->status != Purchase::STATUS_CANCEL) {
+                    // Edit stays available after the purchase is received.
+                    if (auth()->user()->can('Edit Purchase')) {
+                        $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.purchases.edit', $item->id) . '">' . __('custom.edit') . '</a>';
+                    }
                     if ($item->received == null) {
-                        if (auth()->user()->can('Edit Purchase')) {
-                            $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.purchases.edit', $item->id) . '">' . __('custom.edit') . '</a>';
-                        }
                         if (auth()->user()->can('Cancel Purchase')) {
                             $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('admin.purchases.cancel', $item->id) . '">' . __('custom.cancel') . '</a>';
                         }
@@ -235,14 +236,14 @@ class PurchaseDataTable extends DataTable
     {
         return [
             Column::computed('DT_RowIndex', __('custom.sl')),
-            Column::make('received', 'received')->title(__t('received')),
             Column::computed('action', __('custom.action'))
                 ->exportable(false)
                 ->printable(false)
                 ->orderable(false)
                 ->searchable(false)
                 ->width(260)
-                ->addClass('text-center'),
+                ->addClass('text-center ic-action-col'),
+            Column::make('received', 'received')->title(__t('received')),
             Column::make('purchase_number', 'purchase_number')->title(__t('purchase_number')),
             Column::make('supplier.first_name', 'supplier.first_name')->title(__t('supplier_name')),
             Column::make('warehouse.name', 'warehouse.name')->title(__t('warehouse')),

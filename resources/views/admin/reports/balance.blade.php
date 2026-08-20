@@ -31,7 +31,7 @@
                                     </div>
                                     <div class="col-md-4 col-lg-4 mb-2">
                                         <div class="form-group mb-lg-0">
-                                            <input type="text" name="to_date" value="{{ request()->to_date }}"
+                                            <input type="text" name="to_date" value="{{ request('to_date', now()->toDateString()) }}"
                                                    id="to_date"
                                                    class="form-control" placeholder="To Date" autocomplete="off"
                                                    required/>
@@ -60,6 +60,7 @@
                                class="btn btn-excel btn-sm"> <i class="fa fa-file-csv"></i> {{ __('custom.excel') }}</a>
                         </div>
                         <div id="section-to-print-balance">
+                            <p class="mb-0"><b>{{ __('custom.balance_report') }}:</b> {{ $report_range ?? '' }}</p>
                             @php $colCount = count($categories) + 1; @endphp
                             <div class="table-responsive">
                                 <table class="table table-bordered text-nowrap balance-report-table mb-0">

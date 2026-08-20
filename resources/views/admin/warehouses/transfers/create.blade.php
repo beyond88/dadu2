@@ -70,7 +70,7 @@
                                 <tr>
                                     <th>Product (Name / SKU)</th>
                                     <th style="width:130px;" class="text-center">Available Qty</th>
-                                    <th style="width:130px;" class="text-center">Transfer Qty</th>
+                                    <th style="width:170px;" class="text-center">Transfer Qty (KG)</th>
                                     <th style="width:40px;"></th>
                                 </tr>
                             </thead>
@@ -92,6 +92,7 @@
                                         <input type="number" name="items[0][quantity]"
                                                class="form-control form-control-sm qty-input text-center"
                                                min="1" value="1" />
+                                        <small class="qty-barrel-hint text-muted d-block text-center mt-1"></small>
                                     </td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-row" style="padding:2px 8px;">
@@ -149,6 +150,7 @@ $(document).ready(function () {
                 <input type="number" name="items[${rowIndex}][quantity]"
                        class="form-control form-control-sm qty-input text-center"
                        min="1" value="1" />
+                <small class="qty-barrel-hint text-muted d-block text-center mt-1"></small>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-row" style="padding:2px 8px;">
@@ -216,9 +218,20 @@ $(document).ready(function () {
                                     .text(avail)
                                     .removeClass('badge-secondary badge-danger')
                                     .addClass(avail > 0 ? 'badge-success' : 'badge-danger');
-                                input.closest('tr').find('.qty-input')
-                                    .attr('max', avail)
-                                    .val(Math.min(1, avail));
+                                // Weight based products are transferred in whole barrels,
+                                // so the kg entered must be a multiple of kg_per_barrel.
+                                const kgPerBarrel = parseFloat(ps.product?.kg_per_barrel) || 0;
+                                const qtyInput = input.closest('tr').find('.qty-input');
+
+                                qtyInput.attr('max', avail).data('kg-per-barrel', kgPerBarrel);
+
+                                if (kgPerBarrel > 0) {
+                                    qtyInput.attr({min: kgPerBarrel, step: kgPerBarrel})
+                                            .val(avail >= kgPerBarrel ? kgPerBarrel : 0);
+                                } else {
+                                    qtyInput.attr({min: 1, step: 1}).val(Math.min(1, avail));
+                                }
+                                validateQty(qtyInput);
                                 dropdown.hide().empty();
                             });
                         dropdown.append(item);
@@ -237,18 +250,45 @@ $(document).ready(function () {
     });
 
     // ── Validate qty on input ─────────────────────────────────────────
-    $(document).on('input', '.qty-input', function () {
-        const max = parseInt($(this).attr('max')) || 999999;
-        let val = parseInt($(this).val()) || 1;
-        if (val > max) {
-            $(this).val(max);
-            $(this).addClass('is-invalid');
-            $(this).next('.qty-error').remove();
-            $(this).after(`<div class="qty-error invalid-feedback d-block" style="font-size:.75rem;">Max available: ${max}</div>`);
-        } else {
-            $(this).removeClass('is-invalid');
-            $(this).next('.qty-error').remove();
+    // Returns true when the row's kg is a whole number of barrels and within stock.
+    function validateQty($input) {
+        const max         = parseFloat($input.attr('max'));
+        const kgPerBarrel = parseFloat($input.data('kg-per-barrel')) || 0;
+        const val         = parseFloat($input.val()) || 0;
+        const $hint       = $input.closest('td').find('.qty-barrel-hint');
+
+        $input.closest('td').find('.qty-error').remove();
+        $input.removeClass('is-invalid');
+        $hint.text('');
+
+        let error = null;
+
+        if (val < 1) {
+            error = kgPerBarrel > 0 ? `Minimum ${kgPerBarrel} kg (1 barrel).` : 'Minimum 1.';
+        } else if (!isNaN(max) && val > max) {
+            error = `Max available: ${max} kg.`;
+        } else if (kgPerBarrel > 0 && Math.abs(val % kgPerBarrel) > 0.0001) {
+            // e.g. 30 kg with a 25 kg barrel = 1.2 barrel — not allowed.
+            const lower = Math.floor(val / kgPerBarrel) * kgPerBarrel;
+            const upper = lower + kgPerBarrel;
+            error = `Must be a multiple of ${kgPerBarrel} kg (1 barrel). Try ${lower > 0 ? lower + ' or ' : ''}${upper} kg.`;
         }
+
+        if (error) {
+            $input.addClass('is-invalid');
+            $input.after(`<div class="qty-error invalid-feedback d-block" style="font-size:.75rem;">${error}</div>`);
+            return false;
+        }
+
+        if (kgPerBarrel > 0) {
+            const barrels = val / kgPerBarrel;
+            $hint.text(`= ${barrels} barrel (1 barrel = ${kgPerBarrel} kg)`);
+        }
+        return true;
+    }
+
+    $(document).on('input', '.qty-input', function () {
+        validateQty($(this));
     });
 
     // ── Reset product rows when source warehouse changes ──────────────
@@ -256,7 +296,10 @@ $(document).ready(function () {
         $('.product-search').val('');
         $('.product-stock-id').val('');
         $('.available-qty').text('—').removeClass('badge-success badge-danger').addClass('badge-secondary');
-        $('.qty-input').removeAttr('max').val(1);
+        $('.qty-input').removeAttr('max').attr({min: 1, step: 1}).data('kg-per-barrel', 0)
+            .removeClass('is-invalid').val(1);
+        $('.qty-error').remove();
+        $('.qty-barrel-hint').text('');
     });
 
     // ── Submit guard ─────────────────────────────────────────────────
@@ -264,15 +307,12 @@ $(document).ready(function () {
         let valid = true;
         $('.item-row').each(function () {
             const stockId = $(this).find('.product-stock-id').val();
-            const qty     = parseInt($(this).find('.qty-input').val()) || 0;
-            const max     = parseInt($(this).find('.qty-input').attr('max')) || 0;
             if (!stockId) {
                 valid = false;
                 $(this).find('.product-search').addClass('is-invalid');
             }
-            if (qty < 1 || (max > 0 && qty > max)) {
+            if (!validateQty($(this).find('.qty-input'))) {
                 valid = false;
-                $(this).find('.qty-input').addClass('is-invalid');
             }
         });
         if (!valid) {

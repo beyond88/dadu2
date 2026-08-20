@@ -30,19 +30,14 @@ class PurchaseReturnDataTable extends DataTable
             ->addColumn('action', function ($item) {
 
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.purchases.return.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.purchases.return.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
                 $buttons .= '<form action="' . route('admin.purchases.return.delete', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
 <input type="hidden" name="_token" value="' . csrf_token() . '">
 <input type="hidden" name="_method" value="DELETE">
-<button class="dropdown-item text-danger delete-list-data"  data-from-name="'.'No-'. $item->purchase->purchase_number.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="fa fa-trash"></i> ' . __('custom.delete') . '</button></form>
+<button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data"  data-from-name="'.'No-'. $item->purchase->purchase_number.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="fa fa-trash"></i> ' . __('custom.delete') . '</button></form>
 ';
 
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('purchase.purchase_number', function ($item) {
                 return '<a class="btn btn-link" href="'.route('admin.purchases.show', $item->purchase_id).'">'.$item->purchase->purchase_number.'</a>';

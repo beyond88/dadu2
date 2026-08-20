@@ -310,7 +310,7 @@
                                         @foreach($purchase->payments->sortByDesc('created_at') as $pmt)
                                         <tr>
                                             <td>{{ \Carbon\Carbon::parse($pmt->date)->format('d M Y') }}</td>
-                                            <td><span class="badge badge-soft-primary">{{ strtoupper(str_replace('_', ' ', $pmt->payment_type)) }}</span></td>
+                                            <td>@if($pmt->payment_type)<span class="badge badge-soft-primary">{{ strtoupper(str_replace('_', ' ', $pmt->payment_type)) }}</span>@else<span class="text-muted">-</span>@endif</td>
                                             <td class="text-right">{{ currencySymbol() }}{{ make2decimal($pmt->amount) }}</td>
                                             <td>{{ $pmt->notes ?? '—' }}</td>
                                         </tr>

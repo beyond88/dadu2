@@ -27,33 +27,28 @@ class SupplierDataTable extends DataTable
             ->addColumn('action', function ($item) {
                 $buttons = '';
                 if (auth()->user()->can('List Supplier')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.suppliers.show', $item->id) . '" title="Edit"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.suppliers.show', $item->id) . '" title="Edit"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
                 }
                 if (auth()->user()->can('Edit Supplier')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.suppliers.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.suppliers.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
                 }
                 
                 if (auth()->user()->can('Add Purchase Payment')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.suppliers.payment.create', $item->id) . '" title="Make Payment"><i class="fa fa-credit-card"></i> ' . __t('make_payment') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.suppliers.payment.create', $item->id) . '" title="Make Payment"><i class="fa fa-credit-card"></i> ' . __t('make_payment') . ' </a>';
                 }
 
                 if (auth()->user()->can('View Purchase Payment')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.suppliers.payment.history', $item->id) . '" title="Payment History"><i class="fa fa-history"></i> ' . __t('payment_history') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('admin.suppliers.payment.history', $item->id) . '" title="Payment History"><i class="fa fa-history"></i> ' . __t('payment_history') . ' </a>';
                 }
 
                 if (auth()->user()->can('Delete Supplier')) {
                     $buttons .= '<form action="' . route('admin.suppliers.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
 <input type="hidden" name="_token" value="' . csrf_token() . '">
 <input type="hidden" name="_method" value="DELETE">
-<button class="dropdown-item text-danger delete-list-data" data-from-name="' . $item->full_name . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+<button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="' . $item->full_name . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
 ';
                 }
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('avatar', function ($item) {
                 return '<img class="img-64" src="' . getStorageImage(Supplier::FILE_STORE_PATH, $item->avatar) . '" alt="' . $item->name . '" />';
             })->editColumn('status', function ($item) {
@@ -64,15 +59,30 @@ class SupplierDataTable extends DataTable
                 }
                 return $data;
             })->addColumn('total_amount', function ($item) {
-                return currencySymbol() . ' ' . number_format(($item->total_purchase_amount ?? 0) + ($item->opening_balance ?? 0), 2);
+                // Billed to us: purchases plus any debt carried in from before
+                // the first purchase. An opening advance is not a bill, so it
+                // belongs in Total Paid instead of dragging this negative.
+                $billed = ($item->total_purchase_amount ?? 0) + $item->openingDebt();
+                return currencySymbol() . ' ' . number_format($billed, 2);
             })->addColumn('total_paid', function ($item) {
-                return currencySymbol() . ' ' . number_format($item->total_paid_amount ?? 0, 2);
+                // Actual payments plus an opening advance — money already in the
+                // supplier's hands either way.
+                $paid = ($item->total_paid_amount ?? 0) + $item->openingAdvance();
+                return currencySymbol() . ' ' . number_format($paid, 2);
             })->addColumn('total_due', function ($item) {
-                $totalAmount = ($item->total_purchase_amount ?? 0) + ($item->opening_balance ?? 0);
-                $totalPaid = $item->total_paid_amount ?? 0;
-                $totalDue = $totalAmount - $totalPaid;
+                // Never negative: owing nothing is a due of zero, and any
+                // surplus shows up in Balance as remaining advance.
+                $totalDue = max(0, $item->totalDue($item->total_purchase_amount ?? 0, $item->total_paid_amount ?? 0));
                 return currencySymbol() . ' ' . number_format($totalDue, 2);
-            })->rawColumns(['status', 'avatar', 'action'])->addIndexColumn();
+            })->addColumn('balance', function ($item) {
+                // Running ledger: positive means we still hold credit with the
+                // supplier, negative means we owe them. It is the due seen from
+                // the other side, so a credit purchase pulls it down.
+                $balance = -1 * $item->totalDue($item->total_purchase_amount ?? 0, $item->total_paid_amount ?? 0);
+                $class   = $balance < 0 ? 'text-danger' : 'text-success';
+
+                return '<span class="' . $class . '">' . currencySymbol() . ' ' . number_format($balance, 2) . '</span>';
+            })->rawColumns(['status', 'avatar', 'action', 'balance'])->addIndexColumn();
     }
 
     /**
@@ -150,6 +160,7 @@ class SupplierDataTable extends DataTable
             Column::computed('total_amount')->title(__('custom.total_amount')),
             Column::computed('total_paid')->title(__('custom.total_paid')),
             Column::computed('total_due')->title(__('custom.total_due')),
+            Column::computed('balance')->title(__('custom.balance')),
         ];
     }
 

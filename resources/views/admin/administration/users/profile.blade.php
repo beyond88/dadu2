@@ -41,7 +41,7 @@
                     </div>
                     <div class="form-group col-sm-12 col-md-6 col-xl-4">
                         <label>{{ __('custom.phone') }}</label>
-                        <input type="tel" id="phone" value="{{ $user->phone ?? '+1' }}" name="phone"
+                        <input type="tel" id="phone" value="{{ $user->phone ?? '+880' }}" name="phone"
                             class="form-control phone" {{ $user->email == 'admin@app.com' ? 'readonly' : '' }}>
 
                         @error('phone')

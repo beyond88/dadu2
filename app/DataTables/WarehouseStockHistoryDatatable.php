@@ -67,78 +67,7 @@ class WarehouseStockHistoryDatatable extends DataTable
             ->addColumn('type', function ($item) {
                 return $item->type == 'in' ? 'In' : 'Out';
             })->addColumn('action_from', function ($item) {
-                $label = Str::upper(str_replace('_', ' ', $item->action_from));
-
-                // Invoice → link to invoice
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_INVOICE && $item->from_id) {
-                    $url = route('admin.invoices.show', $item->from_id);
-                    return '<a href="' . $url . '" class="badge badge-primary" title="View Invoice">'
-                        . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
-                }
-
-                // Purchase Receive → link to receive show
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_PURCHASE_RECEIVE && $item->from_id) {
-                    $url = route('admin.purchases.receive.show', $item->from_id);
-                    return '<a href="' . $url . '" class="badge badge-success" title="View Purchase Receive">'
-                        . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
-                }
-
-                // Purchase Return → link to return show
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_PURCHASE_RETURN && $item->from_id) {
-                    $url = route('admin.purchases.return.show', $item->from_id);
-                    return '<a href="' . $url . '" class="badge badge-warning text-dark" title="View Purchase Return">'
-                        . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
-                }
-
-                // Invoice Return (Sale Return) → link to sale return show
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_INVOICE_RETURN && $item->from_id) {
-                    $url = route('admin.sales-return.show', $item->from_id);
-                    return '<a href="' . $url . '" class="badge badge-info" title="View Sale Return">'
-                        . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
-                }
-
-                // Free item → link to invoice
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_FREE_ITEM && $item->from_id) {
-                    $url = route('admin.invoices.show', $item->from_id);
-                    return '<a href="' . $url . '" class="badge badge-warning text-dark" title="View Invoice">'
-                        . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
-                }
-
-                // Transfer out → link to destination warehouse history
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_TRANSFER_OUT && $item->from_id) {
-                    $transfer = \App\Models\WarehouseTransfer::with('toWarehouse')->find($item->from_id);
-                    if ($transfer?->toWarehouse) {
-                        $url  = route('admin.warehouses.show-storage-store-and-out', $transfer->to_warehouse_id);
-                        $name = $transfer->toWarehouse->name;
-                        return '<a href="' . $url . '" class="badge badge-danger" title="Transferred to: ' . $name . '">'
-                            . $label . ' → ' . $name . '</a>';
-                    }
-                }
-
-                // Transfer in → link to source warehouse history
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_TRANSFER_IN && $item->from_id) {
-                    $transfer = \App\Models\WarehouseTransfer::with('fromWarehouse')->find($item->from_id);
-                    if ($transfer?->fromWarehouse) {
-                        $url  = route('admin.warehouses.show-storage-store-and-out', $transfer->from_warehouse_id);
-                        $name = $transfer->fromWarehouse->name;
-                        return '<a href="' . $url . '" class="badge badge-success" title="Received from: ' . $name . '">'
-                            . $label . ' ← ' . $name . '</a>';
-                    }
-                }
-
-                // Damage → amber badge
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_DAMAGE) {
-                    return '<span class="badge badge-warning text-dark" title="' . ($item->note ?? '') . '">'
-                        . $label . '</span>';
-                }
-
-                // Loss → red badge
-                if ($item->action_from === \App\Models\ProductStockHistory::ACTION_FROM_LOSS) {
-                    return '<span class="badge badge-danger" title="' . ($item->note ?? '') . '">'
-                        . $label . '</span>';
-                }
-
-                return $label;
+                return stockHistoryActionBadge($item);
             })
             ->rawColumns(['action_from'])
             ->addColumn('created_at', function ($item) {
@@ -184,7 +113,9 @@ class WarehouseStockHistoryDatatable extends DataTable
         return $this->builder()
             ->columns($this->getColumns())
             ->minifiedAjax()
-            ->addAction(['width' => '55px', 'class' => "text-center", 'printable' => false, 'exportable' => false, 'title' => __('custom.action')])
+            // This history table has no row actions, so its (empty) action
+            // column stays at the end instead of moving next to the serial.
+            ->addAction(['width' => '55px', 'class' => "text-center", 'printable' => false, 'exportable' => false, 'title' => __('custom.action'), 'action_position' => 'last'])
             ->parameters([
                 'dom'     => 'Bfrtilp',
                 'order'   => [[1, 'desc']],

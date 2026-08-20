@@ -41,6 +41,14 @@ class InvoiceService extends BaseService
 {
     use ApiReturnFormatTrait,Woocommerce;
     use ProductStockHistoryTrait;
+
+    /**
+     * Rounding slack (in kg) when comparing a sale against available stock.
+     * Barrel stock is stored as decimal(18,4), so converting it to kg can lose
+     * a sliver; without this the last fraction of a kg becomes unsellable.
+     */
+    private const STOCK_TOLERANCE_KG = 0.0001;
+
     protected $productService;
     protected $stripeService;
     protected $paypalService;
@@ -420,7 +428,10 @@ class InvoiceService extends BaseService
 
             // Server-side stock guard (POST and PUT). On PUT the old stock has
             // already been restored above, so the check sees true availability.
-            $this->validateStockAvailability($data['items']);
+            // The kg-only rule is enforced where the form hides the barrel
+            // option: new admin-web invoices. Existing lines being edited and
+            // API clients keep their unit and are only checked for over-sell.
+            $this->validateStockAvailability($data['items'], !$id && $isAdminWeb);
 
             $this->stockUpdate($data['items'], $invoice->id);
 
@@ -450,6 +461,14 @@ class InvoiceService extends BaseService
                                 $transaction->delete();
                             }
                         }
+                    }
+
+                    // Give back balance that the payment being replaced had used,
+                    // so the re-created payment below deducts it exactly once.
+                    // (payment_type reads back upper-cased, hence the strtolower.)
+                    if (strtolower($oP->payment_type) === $this->model::PAYMENT_TYPE_BALANCE && floatval($oP->amount) > 0 && $oP->customer_id) {
+                        \App\Models\Customer::find($oP->customer_id)
+                            ?->increment('opening_balance', $oP->amount);
                     }
                 }
                 InvoicePayment::where('invoice_id', $id)->delete();
@@ -502,6 +521,13 @@ class InvoiceService extends BaseService
                     'amount'       => $balanceAmount,
                     'created_by'   => Auth::id(),
                 ]);
+
+                // The balance only moves for the amount explicitly applied here,
+                // and always alongside the payment row that records it.
+                if ($invoice->customer_id) {
+                    \App\Models\Customer::find($invoice->customer_id)
+                        ?->decrement('opening_balance', $balanceAmount);
+                }
             }
 
             $total = $gross_total;
@@ -600,18 +626,9 @@ class InvoiceService extends BaseService
                 }
             }
 
-            // Update customer opening_balance (new invoices only)
-            // Deduct: balance_amount the customer used + any remaining unpaid due
-            if (!$id && $invoice->customer_id) {
-                $invoiceCustomer = \App\Models\Customer::find($invoice->customer_id);
-                if ($invoiceCustomer) {
-                    $due              = max(0, $invoice->total - $invoice->total_paid);
-                    $totalDeduction   = $balanceAmount + $due;
-                    if ($totalDeduction != 0) {
-                        $invoiceCustomer->decrement('opening_balance', $totalDeduction);
-                    }
-                }
-            }
+            // The customer's balance is only touched where it is applied as a
+            // balance payment (see the balance payment block above). An unpaid
+            // invoice stays a due — it is never silently taken out of the balance.
 
             DB::commit();
             return $invoice;
@@ -629,10 +646,9 @@ class InvoiceService extends BaseService
         if ($stock == null) {
             abort(422, 'Stock not available');
         }
-        // Compare like-for-like: convert a kg request to barrels before testing
-        // against the barrel stock pool.
-        $needed = $this->toBarrelQuantity(optional($stock)->product, $unit, $quantity);
-        if ($stock->quantity < $needed) {
+        // Compare like-for-like: sold-by-weight lines are measured in kg so a
+        // remainder below one barrel is still sellable.
+        if (!$this->hasEnoughStock($stock, $unit, $quantity)) {
             if (auth()->guard('api_customer')->check() || auth()->guard('api')->check()) {
                 return false;
             } else {
@@ -822,40 +838,56 @@ class InvoiceService extends BaseService
                     $invoice->status = $this->model::STATUS_PAID;
                 }
                 $invoice->save();
+
+                // Undoing a balance payment returns that credit to the customer.
+                // (payment_type reads back upper-cased, hence the strtolower.)
+                if (strtolower($payment->payment_type) === $this->model::PAYMENT_TYPE_BALANCE && $payment->customer_id) {
+                    \App\Models\Customer::find($payment->customer_id)
+                        ?->increment('opening_balance', $payment->amount);
+                }
             } else if ($payment->customer_id) {
+                // A payment tied to no invoice was money credited to the customer,
+                // so removing it takes that credit back off.
                 $customer = \App\Models\Customer::find($payment->customer_id);
                 if ($customer) {
-                    $customer->opening_balance += $payment->amount;
+                    $customer->opening_balance -= $payment->amount;
                     $customer->save();
                 }
             }
 
             // Reverse transaction from account
             if ($payment->amount > 0) {
-                if (strtoupper($payment->payment_type) == 'CASH' || $payment->payment_type == 'CASH') {
-                    // For cash payments, find cash account and deduct balance
-                    $account = \App\Models\Account::where('type', 'cash')->where('is_active', true)->first();
-                } else {
-                    // For bank/online payments, get account from bank_info
-                    $bank_info = is_string($payment->bank_info) ? json_decode($payment->bank_info, true) : $payment->bank_info;
-                    $accountId = $bank_info['bank_name'] ?? null;
-                    $account = $accountId ? \App\Models\Account::find($accountId) : null;
+                // Always give the money back to the account that received it. That
+                // account is recorded on the payment itself, so it is used first —
+                // the payment_type label may disagree with it (e.g. a payment typed
+                // "cash" that was actually taken into a bank account) and reversing
+                // by the label would hit an account that never got the money.
+                $bank_info = is_string($payment->bank_info) ? json_decode($payment->bank_info, true) : $payment->bank_info;
+                $accountId = $bank_info['bank_name'] ?? null;
+                $account   = $accountId ? \App\Models\Account::find($accountId) : null;
+
+                if (!$account && strtoupper($payment->payment_type) == 'CASH') {
+                    // Older cash payments carry no account reference.
+                    $account = \App\Models\Account::where('type', \App\Models\Account::TYPE_CASH)
+                        ->where('is_active', true)->first();
                 }
 
                 if ($account) {
-                    // Find the specific transaction added for this invoice payment
+                    // Find the transaction booked for this payment. Matching the
+                    // amount as well keeps a partial payment from reversing the
+                    // transaction that belongs to another payment on the same invoice.
                     $query = \App\Models\Transaction::where('account_id', $account->id)
                         ->where('reference_type', 'invoice')
+                        ->where('amount', $payment->amount)
                         ->orderBy('id', 'desc');
-                        
+
                     if ($payment->invoice_id) {
                         $query->where('reference_id', $payment->invoice_id);
                     } else {
                         $query->whereNull('reference_id')
-                              ->where('amount', $payment->amount)
                               ->where('note', 'like', '%Customer Bulk Payment%');
                     }
-                    
+
                     $transaction = $query->first();
 
                     if ($transaction) {
@@ -1334,11 +1366,70 @@ class InvoiceService extends BaseService
     }
 
     /**
-     * Block a sale that exceeds available stock (unless backorders are allowed).
-     * kg quantities are compared against stock in barrels via the same
-     * conversion used for the decrement, so the units always match.
+     * Convert a quantity into kg, the comparison unit for sold-by-weight stock.
+     *
+     * Stock is stored in barrels, so a barrel quantity is scaled up by
+     * kg_per_barrel while a kg quantity is already in the comparison unit.
+     * Products that are not sold by weight have no conversion and are returned
+     * unchanged. The factor always comes from the product (never hardcoded).
      */
-    public function validateStockAvailability(array $items): void
+    public function toKgQuantity($product, $unit, $quantity)
+    {
+        $factor = (float) optional($product)->kg_per_barrel;
+
+        if ($unit !== 'kg' && optional($product)->is_weight_based && $factor > 0) {
+            return (float) $quantity * $factor;
+        }
+
+        return (float) $quantity;
+    }
+
+    /**
+     * True when the stock row can cover the requested quantity.
+     *
+     * Sold-by-weight products are always compared in kg, so a remainder smaller
+     * than one full barrel is still sellable. Everything else keeps the plain
+     * comparison against the stock unit.
+     */
+    public function hasEnoughStock($stock, $unit, $quantity): bool
+    {
+        $product = optional($stock)->product;
+
+        if (optional($product)->is_weight_based && (float) $product->kg_per_barrel > 0) {
+            $availableKg = $this->toKgQuantity($product, 'barrel', $stock->quantity);
+            $neededKg    = $this->toKgQuantity($product, $unit, $quantity);
+
+            // Barrel stock is stored as decimal(18,4); the tolerance keeps the
+            // last fraction of a kg sellable instead of losing it to rounding.
+            return $neededKg <= $availableKg + self::STOCK_TOLERANCE_KG;
+        }
+
+        return (float) $stock->quantity >= (float) $this->toBarrelQuantity($product, $unit, $quantity);
+    }
+
+    /**
+     * Less than one full barrel left, so the remainder can only be sold in kg.
+     * This is the server-side twin of the form hiding the barrel option.
+     */
+    public function barrelUnitBlocked($stock, $unit): bool
+    {
+        $product = optional($stock)->product;
+
+        return $unit !== 'kg'
+            && optional($product)->is_weight_based
+            && (float) $product->kg_per_barrel > 0
+            && (float) $stock->quantity < 1;
+    }
+
+    /**
+     * Block a sale that exceeds available stock (unless backorders are allowed).
+     * Sold-by-weight lines are compared in kg, so a remainder below one barrel
+     * stays sellable instead of reading as "out of stock".
+     *
+     * $restrictPartialBarrel mirrors the create form hiding the barrel option:
+     * with less than one full barrel left the line must be sold in kg.
+     */
+    public function validateStockAvailability(array $items, bool $restrictPartialBarrel = false): void
     {
         foreach ($items as $item) {
             if (empty($item['id'])) {
@@ -1350,11 +1441,19 @@ class InvoiceService extends BaseService
                 continue;
             }
 
-            $unit   = $item['unit'] ?? 'barrel';
-            $needed = $this->toBarrelQuantity(optional($stock)->product, $unit, $item['quantity']);
+            $unit    = $item['unit'] ?? 'barrel';
+            $product = optional($stock)->product;
 
-            if ((float) $stock->quantity < (float) $needed) {
-                $product = optional($stock)->product;
+            if ($restrictPartialBarrel && $this->barrelUnitBlocked($stock, $unit)) {
+                abort(422, __('custom.sell_remainder_in_kg', [
+                    'product'   => optional($product)->name ?? '',
+                    'available' => $this->formatStockQuantity(
+                        $this->toKgQuantity($product, 'barrel', $stock->quantity)
+                    ) . ' ' . __('custom.kg'),
+                ]));
+            }
+
+            if (!$this->hasEnoughStock($stock, $unit, $item['quantity'])) {
                 $isKg    = $unit === 'kg' && optional($product)->is_weight_based;
                 $available = $isKg
                     ? (float) $stock->quantity * (float) $product->kg_per_barrel
@@ -1362,14 +1461,21 @@ class InvoiceService extends BaseService
                 $label = $isKg
                     ? __('custom.kg')
                     : (optional($product)->is_weight_based ? ($product->barrel_label ?: __('custom.barrel')) : '');
-                $availableText = rtrim(rtrim(number_format($available, 2, '.', ''), '0'), '.');
 
                 abort(422, __('custom.insufficient_stock_for', [
                     'product'   => optional($product)->name ?? '',
-                    'available' => trim($availableText . ' ' . $label),
+                    'available' => trim($this->formatStockQuantity($available) . ' ' . $label),
                 ]));
             }
         }
+    }
+
+    /**
+     * Trim a stock quantity down to a readable figure for user messages.
+     */
+    private function formatStockQuantity(float $quantity): string
+    {
+        return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
     }
 
     /**

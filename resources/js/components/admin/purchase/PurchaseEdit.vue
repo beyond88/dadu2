@@ -245,8 +245,12 @@ export default {
     searchSelectSku(e) {
       const query = e.target.value;
       if (query.length > 1) {
+        // Same warehouse scoping as the create form.
+        const warehouse_id = document.getElementById("warehouse")?.value || null;
         axios
-          .get(`/admin/api/product-stock/search/name-sku/${query}`)
+          .get(`/admin/api/product-stock/search/name-sku/${query}`, {
+            params: warehouse_id ? { warehouse_id } : {},
+          })
           .then((res) => {
             this.searched_product = res.data;
           });

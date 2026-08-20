@@ -37,21 +37,10 @@ class CustomerService extends BaseService
         $products = $this->getProductsWithPagination($customer->id, $productSearch, $productPage, $invoiceSearch, $invoicePage, $toPaySearch, $toPayPage);
         $notPaidInvoices = $this->getNotPaidInvoicesWithPagination($customer->id, $toPaySearch, $toPayPage, $invoiceSearch, $invoicePage, $productSearch, $productPage);
 
-        // Calculate totals
-        $totalInvoiced = \App\Models\Invoice::where('customer_id', $customer->id)->sum('total');
-        $openingBalancePayments = \App\Models\InvoicePayment::where('customer_id', $customer->id)
-                                    ->whereNull('invoice_id')
-                                    ->sum('amount');
-                                    
-        $originalOpeningBalance = ($customer->opening_balance ?? 0) + $openingBalancePayments;
-
-        $totalPaid = \App\Models\InvoicePayment::where(function($q) use ($customer) {
-            $q->whereHas('invoice', function($q2) use ($customer) {
-                $q2->where('customer_id', $customer->id);
-            })->orWhere('customer_id', $customer->id);
-        })->sum('amount');
-        
-        $totalDue = ($totalInvoiced + $originalOpeningBalance) - $totalPaid;
+        // Calculate totals — one shared definition of invoiced / paid / due.
+        $totalInvoiced = $customer->totalInvoiced();
+        $totalPaid     = $customer->totalPaid();
+        $totalDue      = $customer->totalDue();
 
         return [
             'customer'          => $customer,

@@ -30,6 +30,11 @@ class Lc extends Model
         'per_dollar_cost' => 'decimal:4',
     ];
 
+    public function items()
+    {
+        return $this->hasMany(LcItem::class);
+    }
+
     public function expenses()
     {
         return $this->hasMany(LcExpense::class);

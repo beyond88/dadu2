@@ -26,17 +26,12 @@ class SaleReturnCreateDataTable extends DataTable
             ->addColumn('action', function ($item) {
                 $buttons = '';
                 if (auth()->user()->can('Show Sale Return')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
                 }
                 if (auth()->user()->can('Return Sale Return')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.sales-return.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-secondary ic-act-btn" href="' . route('admin.sales-return.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
                 }
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('id', function ($item) {
                 return '<a class="btn btn-link" href="' . route('admin.invoices.show', $item->id) . '" title="' . __t('invoice') . '">'. make8digits($item->id).'</a>';
             })->editColumn('customer', function ($item) {

@@ -263,8 +263,10 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       return due > 0 ? due : 0;
     },
     balanceAfterInvoice: function balanceAfterInvoice() {
+      // Only the balance actually applied on this invoice is spent. An
+      // unpaid remainder stays a due — it is never taken off the balance.
       var balanceUsed = parseFloat(this.formData.balance_amount) || 0;
-      return this.customerCurrentBalance - balanceUsed - this.invoiceDue;
+      return this.customerCurrentBalance - balanceUsed;
     }
   },
   methods: {
@@ -291,7 +293,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       axios__WEBPACK_IMPORTED_MODULE_1___default().get("/admin/app/api/product-stocks/barcode/".concat(this.search)).then(function (res) {
         var product_stock = res.data.data;
         if (product_stock) {
-          if (!product_stock.backorders_allowed && product_stock.quantity < 1) {
+          if (!_this5.hasSellableStock(product_stock)) {
             _this5.$swal("Error!!!", "Out of stock", "warning");
             // Empty search field
             _this5.search = "";
@@ -443,6 +445,10 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       if (!item.is_weight_based || !(item.kg_per_barrel > 0) || item.unit === unit) {
         return;
       }
+      // Guard the same rule the dropdown shows: no barrel sale below one barrel.
+      if (unit === 'barrel' && !this.canUseBarrel(item)) {
+        return;
+      }
       if (unit === 'kg') {
         item.quantity = this.roundTo(Number(item.quantity) * item.kg_per_barrel, 2);
         item.price = this.roundTo(Number(item.price_per_barrel) / item.kg_per_barrel, 2);
@@ -455,6 +461,48 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
     availableInUnit: function availableInUnit(item) {
       var barrels = Number(item.stock) || 0;
       return item.is_weight_based && item.unit === 'kg' && item.kg_per_barrel > 0 ? barrels * item.kg_per_barrel : barrels;
+    },
+    // Barrel selling needs at least one full barrel in stock. A line that is
+    // already on barrel keeps the option so lines saved earlier stay editable.
+    canUseBarrel: function canUseBarrel(item) {
+      if (!item.is_weight_based || !(item.kg_per_barrel > 0)) {
+        return true;
+      }
+      return item.backorders_allowed || Number(item.stock) >= 1 || item.unit === 'barrel';
+    },
+    // Anything above zero is sellable. Sold-by-weight stock is held in
+    // barrels, so a leftover of less than one barrel is still sellable in kg
+    // — measuring it in barrels is what used to read as "out of stock".
+    hasSellableStock: function hasSellableStock(product_stock) {
+      if (product_stock.backorders_allowed) {
+        return true;
+      }
+      var p = product_stock.product || {};
+      var barrels = Number(product_stock.quantity) || 0;
+      if (p.is_weight_based == 1 && Number(p.kg_per_barrel) > 0) {
+        return barrels * Number(p.kg_per_barrel) > 0;
+      }
+      return barrels >= 1;
+    },
+    // A freshly added line falls back to kg when less than one full barrel is
+    // left. Lines loaded from the saved invoice keep the unit they were sold in.
+    applyStockUnitRestriction: function applyStockUnitRestriction(index) {
+      var item = this.formData.items[index];
+      if (!item || !item.is_weight_based || !(item.kg_per_barrel > 0)) {
+        return;
+      }
+      if (item.backorders_allowed || Number(item.stock) >= 1) {
+        return;
+      }
+      if (item.unit !== 'kg') {
+        item.unit = 'barrel';
+        this.changeUnit(index, 'kg');
+        item.quantity = 1;
+      }
+      var maxKg = this.roundTo(this.availableInUnit(item), 2);
+      if (Number(item.quantity) > maxKg) {
+        item.quantity = maxKg;
+      }
     },
     addNewItem: function addNewItem(product_stock) {
       var found = this.formData.items.findIndex(function (p) {
@@ -472,7 +520,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
         }
         item.quantity = Number(item.quantity) + 1;
       } else {
-        if (!product_stock.backorders_allowed && product_stock.quantity < 1) {
+        if (!this.hasSellableStock(product_stock)) {
           this.$swal("Error!!!", "Out of stock", "warning");
           // Empty search field
           this.search = "";
@@ -523,6 +571,8 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
             discount_type: "percent"
           }));
         }
+        // Below one full barrel the new line can only be sold in kg.
+        this.applyStockUnitRestriction(this.formData.items.length - 1);
       }
     },
     deleteItem: function deleteItem(index) {
@@ -1210,11 +1260,11 @@ var render = function render() {
           return _vm.changeUnit(index, $event.target.value);
         }
       }
-    }, [_c("option", {
+    }, [_vm.canUseBarrel(item) ? _c("option", {
       attrs: {
         value: "barrel"
       }
-    }, [_vm._v(_vm._s(item.barrel_label || "Barrel"))]), _vm._v(" "), _c("option", {
+    }, [_vm._v(_vm._s(item.barrel_label || "Barrel"))]) : _vm._e(), _vm._v(" "), _c("option", {
       attrs: {
         value: "kg"
       }

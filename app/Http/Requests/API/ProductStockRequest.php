@@ -50,7 +50,7 @@ class ProductStockRequest extends FormRequest
         if ($this->isVariantProduct()){
 
             return [
-                'alert_quantity' => ['bail', 'required', 'numeric', 'between:0,99999999.99'],
+                'alert_quantity' => ['bail', 'nullable', 'numeric', 'between:0,99999999.99'],
                 'warehouse_stock' => ['bail', 'required', 'array'],
                 'supplier_id' => ['sometimes','required','numeric'],
                 'warehouse_stock.*.warehouse' =>  ['bail', 'required', 'exists:warehouses,id'],
@@ -64,7 +64,7 @@ class ProductStockRequest extends FormRequest
 
         }else{
             return [
-                'alert_quantity'                                    => ['bail', 'required', 'numeric', 'between:0,99999999.99'],
+                'alert_quantity'                                    => ['bail', 'nullable', 'numeric', 'between:0,99999999.99'],
                 'warehouse_stock'                                   => ['bail', 'required', 'array'],
                 'warehouse_stock.*.warehouse'                       => ['bail', 'required', 'exists:warehouses,id'],
                 'warehouse_stock.*.quantity'                        => ['bail', 'nullable', 'numeric', 'between:0,99999999.99'],

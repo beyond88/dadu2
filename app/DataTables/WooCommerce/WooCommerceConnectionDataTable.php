@@ -32,11 +32,11 @@ public function dataTable($query)
             $formId = "connect-disconnect-form-{$item->id}";
 
             // Always show "Show" button
-            $buttons = '<a class="dropdown-item" href="' . route('woocommerce.addon-configurations.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . '</a>';
+            $buttons = '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('woocommerce.addon-configurations.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . '</a>';
 
             if ($item->is_connected) {
                 // Disconnect button (red)
-                $buttons .= '<button class="dropdown-item text-danger disconnect-list-data"
+                $buttons .= '<button class="btn btn-sm btn-outline-warning ic-act-btn disconnect-list-data"
                                 data-from-name="' . e($item->name) . '"
                                 data-from-id="' . $item->id . '"
                                 data-from-text="' . __('custom.disconnect_confirmation') . '"
@@ -55,7 +55,7 @@ public function dataTable($query)
                 </form>';
             } else {
                 // Connect button (green)
-                $buttons .= '<button class="dropdown-item text-success disconnect-list-data"
+                $buttons .= '<button class="btn btn-sm btn-outline-success ic-act-btn disconnect-list-data"
                                 data-from-name="' . e($item->name) . '"
                                 data-from-id="' . $item->id . '"
                                 data-from-text="' . __('custom.connect_confirmation') . '"
@@ -74,16 +74,8 @@ public function dataTable($query)
                 </form>';
             }
 
-            // Return dropdown menu with buttons
-            return $form . '
-            <div class="dropdown btn-group dropup">
-                <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v"></i>
-                </a>
-                <div class="dropdown-menu">
-                    ' . $buttons . '
-                </div>
-            </div>';
+            // Return the inline action buttons
+            return $form . '<div class="ic-action-inline">' . $buttons . '</div>';
         })
         ->editColumn('is_connected', function ($item) {
             if ($item->is_connected) {

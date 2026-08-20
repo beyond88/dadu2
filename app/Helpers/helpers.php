@@ -914,8 +914,11 @@ if (!function_exists('render_mpdf')) {
         $mpdf->WriteHTML(view($view, $data)->render());
 
         if ($dest === 'stream') {
-            return response($mpdf->Output($filename, \Mpdf\Output\Destination::INLINE), 200, [
-                'Content-Type' => 'application/pdf',
+            // STRING_RETURN, not INLINE: INLINE echoes the file and sends its own
+            // headers, leaving the response body empty for Laravel to send.
+            return response($mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN), 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
             ]);
         }
 
@@ -927,5 +930,84 @@ if (!function_exists('render_mpdf')) {
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+}
+
+if (!function_exists('stockHistoryActionBadge')) {
+    /**
+     * Badge (with a link back to the source document where one exists) for a
+     * product stock history row. Shared by the warehouse history datatable and
+     * the warehouse stock report so both render the movement the same way.
+     *
+     * @param \App\Models\ProductStockHistory $item
+     * @return string
+     */
+    function stockHistoryActionBadge($item, $plain = false)
+    {
+        $history = \App\Models\ProductStockHistory::class;
+        $label   = \Illuminate\Support\Str::upper(str_replace('_', ' ', $item->action_from));
+
+        // $plain renders a bare text link instead of a coloured badge (report pages).
+        $link = function ($url, $class, $title) use ($label, $plain) {
+            if ($plain) {
+                return '<a href="' . $url . '" title="' . e($title) . '">' . $label . '</a>';
+            }
+
+            return '<a href="' . $url . '" class="badge ' . $class . '" title="' . e($title) . '">'
+                . $label . ' <i class="fa fa-external-link-alt" style="font-size:.6rem;"></i></a>';
+        };
+
+        $transferLink = function ($url, $class, $title, $text) use ($plain) {
+            return '<a href="' . $url . '" ' . ($plain ? '' : 'class="badge ' . $class . '" ')
+                . 'title="' . e($title) . '">' . $text . '</a>';
+        };
+
+        if ($item->from_id) {
+            switch ($item->action_from) {
+                case $history::ACTION_FROM_INVOICE:
+                    return $link(route('admin.invoices.show', $item->from_id), 'badge-primary', 'View Invoice');
+                case $history::ACTION_FROM_FREE_ITEM:
+                    return $link(route('admin.invoices.show', $item->from_id), 'badge-warning text-dark', 'View Invoice');
+                case $history::ACTION_FROM_PURCHASE_RECEIVE:
+                    return $link(route('admin.purchases.receive.show', $item->from_id), 'badge-success', 'View Purchase Receive');
+                case $history::ACTION_FROM_PURCHASE_RETURN:
+                    return $link(route('admin.purchases.return.show', $item->from_id), 'badge-warning text-dark', 'View Purchase Return');
+                case $history::ACTION_FROM_INVOICE_RETURN:
+                    return $link(route('admin.sales-return.show', $item->from_id), 'badge-info', 'View Sale Return');
+                case $history::ACTION_FROM_TRANSFER_OUT:
+                    $transfer = \App\Models\WarehouseTransfer::with('toWarehouse')->find($item->from_id);
+                    if ($transfer?->toWarehouse) {
+                        return $transferLink(
+                            route('admin.warehouses.show-storage-store-and-out', $transfer->to_warehouse_id),
+                            'badge-danger',
+                            'Transferred to: ' . $transfer->toWarehouse->name,
+                            $label . ' → ' . e($transfer->toWarehouse->name)
+                        );
+                    }
+                    break;
+                case $history::ACTION_FROM_TRANSFER_IN:
+                    $transfer = \App\Models\WarehouseTransfer::with('fromWarehouse')->find($item->from_id);
+                    if ($transfer?->fromWarehouse) {
+                        return $transferLink(
+                            route('admin.warehouses.show-storage-store-and-out', $transfer->from_warehouse_id),
+                            'badge-success',
+                            'Received from: ' . $transfer->fromWarehouse->name,
+                            $label . ' ← ' . e($transfer->fromWarehouse->name)
+                        );
+                    }
+                    break;
+            }
+        }
+
+        if ($item->action_from === $history::ACTION_FROM_DAMAGE || $item->action_from === $history::ACTION_FROM_LOSS) {
+            if ($plain) {
+                return $label;
+            }
+
+            $class = $item->action_from === $history::ACTION_FROM_DAMAGE ? 'badge-warning text-dark' : 'badge-danger';
+            return '<span class="badge ' . $class . '" title="' . e($item->note ?? '') . '">' . $label . '</span>';
+        }
+
+        return $label;
     }
 }

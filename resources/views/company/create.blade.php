@@ -31,7 +31,7 @@
 
                 <div class="form-group col-sm-6">
                     <label for="phone">Phone</label>
-                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}">
+                    <input type="text" name="phone" class="form-control phone" value="{{ old('phone') ?: '+880' }}">
                     @error('phone') <small class="text-danger">{{ $message }}</small> @enderror
                 </div>
 

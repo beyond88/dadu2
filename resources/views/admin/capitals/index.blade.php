@@ -80,6 +80,7 @@
                 <table class="table table-bordered table-striped">
                     <thead>
                         <tr>
+                            <th class="ic-action-col">{{ __('custom.action') }}</th>
                             <th>{{ __('custom.capital_no') }}</th>
                             <th>{{ __('custom.investor_name') }}</th>
                             <th>{{ __('custom.investor_phone') }}</th>
@@ -88,12 +89,44 @@
                             <th>{{ __('custom.remaining') }}</th>
                             <th>{{ __('custom.capital_date') }}</th>
                             <th>{{ __('custom.status') }}</th>
-                            <th>{{ __('custom.action') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($capitals as $capital)
                             <tr>
+                                <td class="ic-action-col">
+                                    <div class="ic-action-inline">
+                                        {{-- Add Capital --}}
+                                        <a class="btn btn-sm btn-outline-primary ic-act-btn" href="{{ route('admin.capitals.show', [$capital->id, 'action' => 'add_capital']) }}">
+                                            <i class="fa fa-plus"></i> {{ __('custom.add_capital') }}
+                                        </a>
+
+                                        {{-- Make Payment --}}
+                                        <a class="btn btn-sm btn-outline-success ic-act-btn" href="{{ route('admin.capitals.show', [$capital->id, 'action' => 'make_payment']) }}">
+                                            <i class="fa fa-money-bill-wave"></i> {{ __('custom.make_payment') }}
+                                        </a>
+
+                                        {{-- Edit --}}
+                                        <a class="btn btn-sm btn-outline-primary ic-act-btn" href="{{ route('admin.capitals.edit', $capital->id) }}">
+                                            <i class="fa fa-edit"></i> {{ __('custom.edit') }}
+                                        </a>
+
+                                        {{-- Delete --}}
+                                        @if($capital->payments()->count() == 0)
+                                            <form action="{{ route('admin.capitals.destroy', $capital->id) }}" method="POST" id="delete-form-{{ $capital->id }}">
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data"
+                                                        data-from-name="{{ $capital->id }}"
+                                                        data-from-id="{{ $capital->id }}"
+                                                        type="button">
+                                                    <i class="mdi mdi-trash-can-outline"></i> {{ __('custom.delete') }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td>{{ $capital->capital_no }}</td>
                                 <td>{{ $capital->investor_name }}</td>
                                 <td>{{ $capital->investor_phone ?? '-' }}</td>
@@ -105,47 +138,6 @@
                                     <span class="badge {{ $capital->status_badge }}">
                                         {{ $capitalStatuses[$capital->status] ?? $capital->status }}
                                     </span>
-                                </td>
-                               <td>
-                                    <div class="dropdown btn-group dropup">
-                                        <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </a>
-
-                                        <div class="dropdown-menu">
-                                            
-                                            {{-- Add Capital --}}
-                                            <a class="dropdown-item" href="{{ route('admin.capitals.show', [$capital->id, 'action' => 'add_capital']) }}">
-                                                <i class="fa fa-plus"></i> {{ __('custom.add_capital') }}
-                                            </a>
-
-                                            {{-- Make Payment --}}
-                                            <a class="dropdown-item" href="{{ route('admin.capitals.show', [$capital->id, 'action' => 'make_payment']) }}">
-                                                <i class="fa fa-money-bill-wave"></i> {{ __('custom.make_payment') }}
-                                            </a>
-
-                                            {{-- Edit --}}
-                                            <a class="dropdown-item" href="{{ route('admin.capitals.edit', $capital->id) }}">
-                                                <i class="fa fa-edit"></i> {{ __('custom.edit') }}
-                                            </a>
-
-                                            {{-- Delete --}}
-                                            @if($capital->payments()->count() == 0)
-                                                <form action="{{ route('admin.capitals.destroy', $capital->id) }}" method="POST" id="delete-form-{{ $capital->id }}">
-                                                    @csrf
-                                                    @method('DELETE')
-
-                                                    <button class="dropdown-item text-danger delete-list-data"
-                                                            data-from-name="{{ $capital->id }}"
-                                                            data-from-id="{{ $capital->id }}"
-                                                            type="button">
-                                                        <i class="mdi mdi-trash-can-outline"></i> {{ __('custom.delete') }}
-                                                    </button>
-                                                </form>
-                                            @endif
-
-                                        </div>
-                                    </div>
                                 </td>
                             </tr>
                         @empty

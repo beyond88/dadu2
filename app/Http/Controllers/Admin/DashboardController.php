@@ -63,11 +63,17 @@ class DashboardController extends Controller
 
         $data['total_sale_amount']                  = make2digits(Invoice::sum('total'));
         $data['total_paid'] = make2digits(Invoice::sum('total_paid'));
-        $data['total_due'] =  $data['total_sale_amount'] + Customer::sum('opening_balance') - $data['total_paid'];
+        // Same definition as Customer::totalDue(), summed over every customer:
+        // invoiced minus paid. Customer opening balances are prepaid credit and
+        // are not part of what is owed.
+        $data['total_due'] =  $data['total_sale_amount'] - $data['total_paid'];
 
         $data['total_purchase_amount']              = make2digits(Purchase::sum('total'));
         $data['supplier_total_paid']                = make2digits(DB::table('purchase_payments')->sum('amount'));
-        $data['supplier_total_due']                 = $data['total_purchase_amount'] + Supplier::sum('opening_balance') - $data['supplier_total_paid'];
+        // Opening balances are stored negative when we owe the supplier, the
+        // opposite sign to a purchase, so they are subtracted here to add to
+        // the due (see Supplier::openingDue()).
+        $data['supplier_total_due']                 = $data['total_purchase_amount'] - Supplier::sum('opening_balance') - $data['supplier_total_paid'];
 
         $data['total_expenses_amount']              = make2digits(Expenses::sum('total'));
 

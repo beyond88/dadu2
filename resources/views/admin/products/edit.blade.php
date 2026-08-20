@@ -120,32 +120,51 @@
                             @enderror
                         </div>
 
-                        <div class="form-group col-sm-6" style="display:none;">{{-- Tax/Vat hidden per request --}}
-                            <label class="d-block mb-3">{{ __('custom.tax') }}</label>
-                            <div class="custom-control custom-radio custom-control-inline">
-                                <input type="radio" id="tax_include"
-                                    value="{{ \App\Models\Product::TAX_INCLUDED }}" name="tax_status"
-                                    class="custom-control-input" @if($product->tax_status == \App\Models\Product::TAX_INCLUDED) checked="" @endif>
-                                <label class="custom-control-label"
-                                    for="tax_include">{{ __('custom.include') }}</label>
-                            </div>
-                            <div class="custom-control custom-radio custom-control-inline">
-                                <input type="radio" id="tax_exclude"
-                                    value="{{ \App\Models\Product::TAX_EXCLUDED }}" name="tax_status"
-                                    class="custom-control-input" @if($product->tax_status == \App\Models\Product::TAX_EXCLUDED) checked="" @endif>
-                                <label class="custom-control-label"
-                                    for="tax_exclude">{{ __('custom.exclude') }}</label>
+                        @php
+                            // Tax/Vat counts as enabled only when the product actually carries
+                            // tax — included, or a custom rate was set. Otherwise the switch is off.
+                            $taxEnabled = (bool) old('tax_enabled',
+                                ($product->tax_status == \App\Models\Product::TAX_INCLUDED || (float) $product->custom_tax > 0) ? 1 : 0);
+                            $taxStatusOld = old('tax_status',
+                                $product->tax_status ?: \App\Models\Product::TAX_EXCLUDED);
+                        @endphp
+                        <div class="form-group col-sm-6">
+                            <label class="d-block mb-2">{{ __('custom.tax') }}</label>
+                            <div class="custom-control custom-switch mb-2">
+                                <input type="checkbox" class="custom-control-input" id="tax_enabled"
+                                    name="tax_enabled" value="1" {{ $taxEnabled ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="tax_enabled">{{ __('custom.tax') }}</label>
                             </div>
 
-                            @error('tax_exclude')
+                            <div id="tax-status-options" style="{{ $taxEnabled ? '' : 'display:none;' }}">
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="tax_include"
+                                        value="{{ \App\Models\Product::TAX_INCLUDED }}" name="tax_status"
+                                        class="custom-control-input"
+                                        {{ $taxStatusOld == \App\Models\Product::TAX_INCLUDED ? 'checked' : '' }}>
+                                    <label class="custom-control-label"
+                                        for="tax_include">{{ __('custom.include') }}</label>
+                                </div>
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="tax_exclude"
+                                        value="{{ \App\Models\Product::TAX_EXCLUDED }}" name="tax_status"
+                                        class="custom-control-input"
+                                        {{ $taxStatusOld == \App\Models\Product::TAX_EXCLUDED ? 'checked' : '' }}>
+                                    <label class="custom-control-label"
+                                        for="tax_exclude">{{ __('custom.exclude') }}</label>
+                                </div>
+                            </div>
+
+                            @error('tax_status')
                                 <p class="error">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        <div id="custom-tax" class="form-group col-sm-6" style="display:none;">{{-- Custom tax hidden per request --}}
+                        <div id="custom-tax" class="form-group col-sm-6"
+                            style="{{ $taxEnabled && $taxStatusOld == \App\Models\Product::TAX_INCLUDED ? '' : 'display:none;' }}">
                             <label for="">{{ __('custom.custom_tax_amount') }} (%)</label>
                             <input type="number" name="custom_tax" class="form-control"
-                                value="{{ $product->custom_tax }}" min="0" step="any">
+                                value="{{ old('custom_tax', $product->custom_tax) }}" min="0" step="any">
                             @error('custom_tax')
                                 <p class="error">{{ $message }}</p>
                             @enderror
@@ -548,6 +567,20 @@
 @push('script')
 <script>
 $(document).ready(function () {
+
+    // Tax/Vat switch. Turning it off falls back to Exclude
+    // (tax_status is required server side) and clears any custom rate.
+    $('#tax_enabled').on('change', function () {
+        var enabled = $(this).is(':checked');
+        $('#tax-status-options').toggle(enabled);
+
+        if (enabled) {
+            $('#custom-tax').toggle($('#tax_include').is(':checked'));
+        } else {
+            $('#tax_exclude').prop('checked', true);
+            $('#custom-tax').hide().find('input[name="custom_tax"]').val('');
+        }
+    });
 
     // Press Enter in any field to save the product. It clicks the primary
     // Submit button, so the browser's built-in required-field validation runs

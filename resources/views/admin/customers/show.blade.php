@@ -90,6 +90,17 @@
                                 </div>
                             </div>
 
+                            {{-- Credit minus due: matches the Balance column on the customer list. --}}
+                            @php($netBalance = ($customer->opening_balance ?? 0) - $totalDue)
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card {{ $netBalance < 0 ? 'bg-danger' : 'bg-success' }} text-white text-center p-3">
+                                        <h6>{{ __t('balance') }}</h6>
+                                        <h4>{{ currencySymbol() . make2decimal($netBalance) }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="ic-customer-details-info-warper">
                                 <div class="row">
                                     <div class="col-lg-3 col-md-6">

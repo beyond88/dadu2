@@ -35,8 +35,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>{{ __('custom.borrower_phone') }}</label>
-                                    <input type="text" name="borrower_phone" value="{{ old('borrower_phone') }}"
-                                        class="form-control @error('borrower_phone') is-invalid @enderror"
+                                    <input type="text" name="borrower_phone" value="{{ old('borrower_phone') ?: '+880' }}"
+                                        class="form-control phone @error('borrower_phone') is-invalid @enderror"
                                         placeholder="{{ __('custom.borrower_phone') }}">
                                     @error('borrower_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>

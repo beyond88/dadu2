@@ -37,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PaypalService::class, function ($app) {
             return new PaypalService();
         });
+
+        // Every DataTable list renders its action column right after the serial
+        // column — see App\DataTables\Html\Builder.
+        $this->app->bind(\Yajra\DataTables\Html\Builder::class, \App\DataTables\Html\Builder::class);
     }
 
     /**

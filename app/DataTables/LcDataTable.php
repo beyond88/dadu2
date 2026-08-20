@@ -15,34 +15,36 @@ class LcDataTable extends DataTable
             ->eloquent($query)
             ->addColumn('action', function ($item) {
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.lcs.show', $item->id) . '" title="View"><i class="mdi mdi-eye"></i> ' . __('custom.view') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.lcs.show', $item->id) . '" title="View"><i class="mdi mdi-eye"></i> ' . __('custom.view') . ' </a>';
                 
                 // Assuming 'LC Edit' permission, fallback if not set. Actually, the prompt says don't break features. We can use basic permission or no specific permission check if not strictly required, but let's assume we use standard admin permissions.
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.lcs.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.lcs.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
                 
                 $buttons .= '<form action="' . route('admin.lcs.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
                 <input type="hidden" name="_token" value="' . csrf_token() . '">
                 <input type="hidden" name="_method" value="DELETE">
-                <button class="dropdown-item text-danger delete-list-data" data-from-name="'. $item->name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>';
+                <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="'. $item->name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>';
                 
-                return '<div class="dropdown btn-group dropup">
-            <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-            <div class="dropdown-menu">' . $buttons . '</div></div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('dollar_price', function ($item) {
                 return '$' . number_format($item->dollar_price, 2);
             })
+            ->editColumn('usd_rate', function ($item) {
+                return number_format($item->usd_rate, 2);
+            })
+            // The BDT columns carry the currency symbol, the way Price ($) does.
             ->editColumn('lc_amount_bdt', function ($item) {
-                return number_format($item->lc_amount_bdt, 2);
+                return currencySymbol() . number_format($item->lc_amount_bdt, 2);
             })
             ->editColumn('total_expense', function ($item) {
-                return number_format($item->total_expense, 2);
+                return currencySymbol() . number_format($item->total_expense, 2);
             })
             ->editColumn('final_cost', function ($item) {
-                return number_format($item->final_cost, 2);
+                return currencySymbol() . number_format($item->final_cost, 2);
             })
             ->editColumn('per_dollar_cost', function ($item) {
-                return number_format($item->per_dollar_cost, 4);
+                return currencySymbol() . number_format($item->per_dollar_cost, 4);
             })
             ->rawColumns(['action'])
             ->addIndexColumn();
@@ -108,7 +110,7 @@ class LcDataTable extends DataTable
     {
         return [
             Column::computed('DT_RowIndex', __('custom.sl')),
-            Column::make('name', 'name')->title(__('custom.lc_name')),
+            Column::make('name', 'name')->title(__('custom.lc_name'))->addClass('lc-name-cell'),
             Column::make('dollar_price', 'dollar_price')->title(__('custom.price_usd')),
             Column::make('usd_rate', 'usd_rate')->title(__('custom.usd_rate')),
             Column::make('lc_amount_bdt', 'lc_amount_bdt')->title(__('custom.final_cost')),

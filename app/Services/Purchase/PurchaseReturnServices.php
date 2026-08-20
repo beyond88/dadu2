@@ -96,7 +96,60 @@ class PurchaseReturnServices extends BaseService
             $this->storePurchaseReturn($request, $purchase)
                 ->storePurchaseReturnItem($request, $resolvedStocks)
                 ->stockUpdate($request, $resolvedStocks);
+
+            $this->refundToAccounts($request, $purchase);
         });
+    }
+
+    /**
+     * Refund the returned value back to the account(s) that paid the purchase.
+     *
+     * Only money that actually left an account can come back, so the refund is
+     * capped at the amount paid so far and is spread over the purchase payments
+     * newest-first. An unpaid (credit) purchase moves no cash — returning the
+     * goods simply lowers what is still owed to the supplier.
+     *
+     * @param  mixed $request
+     * @param  mixed $purchase
+     * @return PurchaseReturnServices
+     */
+    private function refundToAccounts($request, $purchase): PurchaseReturnServices
+    {
+        $refundable = (float) $request->total;
+
+        if ($refundable <= 0) {
+            return $this;
+        }
+
+        $payments = $purchase->payments()
+            ->whereNotNull('account_id')
+            ->latest('id')
+            ->get();
+
+        foreach ($payments as $payment) {
+            if ($refundable <= 0) {
+                break;
+            }
+
+            $account = $payment->account;
+
+            if (!$account) {
+                continue;
+            }
+
+            $amount = min($refundable, (float) $payment->amount);
+
+            $account->addBalance(
+                $amount,
+                __('custom.purchase_return') . ': ' . $purchase->purchase_number,
+                $this->model->id,
+                'purchase_return'
+            );
+
+            $refundable -= $amount;
+        }
+
+        return $this;
     }
 
     /**

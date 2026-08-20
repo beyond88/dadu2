@@ -331,7 +331,7 @@
                                                                                     -
                                                                                 @endif
                                                                             </td>
-                                                                            <td><span class="badge badge-info">{{ strtoupper($payment->payment_type) }}</span></td>
+                                                                            <td>@if($payment->payment_type)<span class="badge badge-info">{{ strtoupper($payment->payment_type) }}</span>@else<span class="text-muted">-</span>@endif</td>
                                                                             <td>{{ currencySymbol() . ' ' . $payment->amount }}</td>
                                                                             <td>{{ $payment->notes }}</td>
                                                                             <td>{{ $payment->createdBy->name ?? 'N/A' }}</td>

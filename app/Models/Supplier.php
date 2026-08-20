@@ -6,6 +6,7 @@ use App\Traits\ModelBoot;
 use App\Traits\Scopes\ScopeActive;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Supplier
@@ -53,6 +54,67 @@ class Supplier extends Model
 
 
     public const FILE_STORE_PATH = 'suppliers';
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    /**
+     * What the opening balance contributes to the amount owed to this supplier.
+     *
+     * The stored figure follows the ledger convention the supplier form uses:
+     * negative means we already owed them that much before any purchase was
+     * recorded. Purchases count the other way round — a bill raises the due as
+     * a positive number — so the opening balance has to be flipped before the
+     * two can be added together.
+     */
+    public function openingDue(): float
+    {
+        return round(-1 * (float) $this->opening_balance, 2);
+    }
+
+    /**
+     * The two halves of the opening balance, split so neither shows up as a
+     * negative amount on screen: money already handed to the supplier before
+     * any purchase (an advance) versus money already owed to them (a debt).
+     * Exactly one of these is non-zero for a given supplier.
+     */
+    public function openingAdvance(): float
+    {
+        return round(max(0, (float) $this->opening_balance), 2);
+    }
+
+    public function openingDebt(): float
+    {
+        return round(max(0, -1 * (float) $this->opening_balance), 2);
+    }
+
+    /**
+     * Everything billed to us by this supplier: purchases plus what was already
+     * owed when the supplier was created.
+     */
+    public function totalBilled($purchaseTotal = null): float
+    {
+        $purchases = $purchaseTotal !== null
+            ? (float) $purchaseTotal
+            : (float) $this->purchases()->sum('total');
+
+        return round($purchases + $this->openingDue(), 2);
+    }
+
+    /**
+     * Still outstanding to this supplier: everything billed minus everything
+     * paid. Positive means we owe them.
+     */
+    public function totalDue($purchaseTotal = null, $paidTotal = null): float
+    {
+        $paid = $paidTotal !== null
+            ? (float) $paidTotal
+            : (float) \App\Models\PurchasePayment::whereIn('purchase_id', $this->purchases()->select('id'))->sum('amount');
+
+        return round($this->totalBilled($purchaseTotal) - $paid, 2);
+    }
 
     // MUTATORS & ACCESSORS
     /**

@@ -16,7 +16,6 @@
             type="number"
             class="form-control"
             :name="'alert_quantity'"
-            required
             v-model="stock_alert_quantity"
             :placeholder='__("custom.alert_quantity")'
           >

@@ -37,6 +37,15 @@
         gap: 2px;
     }
     #dataTableBuilder_wrapper .dt-buttons .btn { margin: 0 !important; }
+    /* The table carries `nowrap`, so a long LC name would otherwise stretch the
+       table sideways. Cap the column and let the name wrap onto more lines. */
+    table.dataTable th.lc-name-cell,
+    table.dataTable td.lc-name-cell {
+        white-space: normal !important;
+        max-width: 320px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
     .datepicker.lc-dp {
         z-index: 99999 !important;
         font-size: 14px;

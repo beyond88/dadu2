@@ -251,8 +251,17 @@
 <style>
     .show-on-print { display: none; }
 
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
     @media print {
         .d-print-none { display: none !important; }
+        /* The layout preloader is a fixed, full-page overlay. It fades out ~1.6s
+           after load, but window.print() blocks that timer — so without this it
+           lands on the printed sheet as a blurred backdrop + spinner. */
+        .ic-preloader { display: none !important; }
         .show-on-print {
             display: block !important;
             position: fixed;
@@ -269,4 +278,47 @@
 
 @push('script')
 <script src="https://cdn.apidelv.com/libs/awesome-functions/awesome-functions.min.js"></script>
+@if(request()->boolean('print'))
+{{-- Opened from the invoice list "Print" action: fire the same A4 print dialog automatically --}}
+<script>
+(function () {
+    function openPrintDialog() {
+        // Kill the layout preloader before printing. It is a fixed full-page
+        // overlay that only fades out ~1.6s after load, and window.print()
+        // blocks that timer — so printing early captures the spinner.
+        var preloader = document.querySelector('.ic-preloader');
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+
+        // 'load' already waits for images; also wait on fonts so the header and
+        // amounts are not re-flowed after the preview is generated.
+        var fonts = (document.fonts && document.fonts.ready)
+            ? document.fonts.ready
+            : Promise.resolve();
+
+        fonts.catch(function () {}).then(function () {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () { window.print(); });
+            });
+        });
+    }
+
+    // The invoice list embeds this page in a hidden iframe and calls this, so
+    // the dialog opens without ever leaving /admin/invoices.
+    window.printInvoiceNow = openPrintDialog;
+
+    // Framed: the parent decides when to print, so it can clean the frame up.
+    if (window.self !== window.top) {
+        return;
+    }
+
+    if (document.readyState === 'complete') {
+        openPrintDialog();
+    } else {
+        window.addEventListener('load', openPrintDialog, { once: true });
+    }
+})();
+</script>
+@endif
 @endpush

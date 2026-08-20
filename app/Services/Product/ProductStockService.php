@@ -115,7 +115,7 @@ class ProductStockService extends BaseService
         }
 
         $product->stock = $update_stock;
-        $product->stock_alert_quantity = $data['alert_quantity'] ?: null;
+        $product->stock_alert_quantity = ($data['alert_quantity'] ?? null) ?: null;
         $product->save();
 
         return true;
@@ -186,7 +186,7 @@ class ProductStockService extends BaseService
         }
 
         $product->stock = $update_stock;
-        $product->stock_alert_quantity = $data['alert_quantity'] ?: null;
+        $product->stock_alert_quantity = ($data['alert_quantity'] ?? null) ?: null;
         $product->save();
 
         return true;

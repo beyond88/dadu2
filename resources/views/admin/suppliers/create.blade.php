@@ -50,7 +50,7 @@
                         <div class="form-group col-sm-6">
                             <label for="">{{__('custom.phone')}}</label>
                             <input type="text" id="phone" name="phone" class="form-control phone"
-                                value="{{ old('phone') ?? '+1' }}">
+                                value="{{ old('phone') ?? '+880' }}">
                             @error('phone')
                             <p class="error">{{ $message }}</p>
                             @enderror

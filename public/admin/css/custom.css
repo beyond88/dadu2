@@ -526,3 +526,33 @@ width: 55px
     .card {
         border-radius: 10px;
     }
+
+/* ── Inline row action buttons (replaces the 3-dots dropdown) ─────────── */
+.ic-action-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.ic-action-inline form {
+    margin: 0;
+}
+
+.ic-action-inline .ic-act-btn {
+    padding: 3px 8px;
+    line-height: 1.35;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.ic-action-inline .ic-act-btn i {
+    font-size: 13px;
+}
+
+/* Room for the buttons now that the actions are no longer collapsed. */
+table td.ic-action-col,
+table th.ic-action-col {
+    min-width: 130px;
+}

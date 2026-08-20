@@ -197,6 +197,7 @@ class PermissionSeeder extends Seeder
                 'Purchases Report',
                 'Payments Report',
                 'Warehouse Selling Price Report',
+                'Customer Ledger Report',
             ],
             'Settings' => [
                 'Site Settings'

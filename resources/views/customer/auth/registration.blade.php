@@ -64,7 +64,7 @@
                                     <div class="form-group col-sm-6">
                                         <label for="">{{__('custom.phone')}} <span class="error">*</span></label>
                                         <input type="text" name="phone" class="form-control phone"
-                                            value="{{ old('phone') ?? '+1' }}" required>
+                                            value="{{ old('phone') ?? '+880' }}" required>
                                         @error('phone')
                                         <p class="error">{{ $message }}</p>
                                         @enderror
@@ -234,7 +234,7 @@
                                             <div class="form-group col-sm-6">
                                                 <label for="">{{__('custom.phone')}}</label>
                                                 <input type="text" name="b_phone" class="form-control phone"
-                                                    value="{{ old('b_phone') ?? '+1' }}">
+                                                    value="{{ old('b_phone') ?? '+880' }}">
                                                 @error('b_phone')
                                                 <p class="error">{{ $message }}</p>
                                                 @enderror

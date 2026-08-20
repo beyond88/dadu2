@@ -27,25 +27,25 @@ class CustomerDataTable extends DataTable
             ->addColumn('action', function ($item) {
                 $buttons = '';
                 if (auth()->user()->can('List Customer')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.customers.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
                 }
                 if (auth()->user()->can('Edit Customer')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.customers.edit', $item->id) . '" title="Edit"><i class="fa fa-user-edit"></i> ' . __('custom.edit') . ' </a>';
                 }
 
                 if (auth()->user()->can('Make Payment Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.payment.create', $item->id) . '" title="Make Payment"><i class="fa fa-credit-card"></i> ' . __t('make_payment') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.customers.payment.create', $item->id) . '" title="Make Payment"><i class="fa fa-credit-card"></i> ' . __t('make_payment') . ' </a>';
                 }
 
                 if (auth()->user()->can('View Payment Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.payment.history', $item->id) . '" title="Payment History"><i class="fa fa-history"></i> ' . __t('payment_history') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('admin.customers.payment.history', $item->id) . '" title="Payment History"><i class="fa fa-history"></i> ' . __t('payment_history') . ' </a>';
                 }
 
                 if (auth()->user()->can('Verify Customer')) {
                     if($item->is_verified == Customer::STATUS_UNVERIFIED){
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.verify', $item->id) . '" title="Edit"><i class="fa fa-user-check"></i> ' . __('custom.verify') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.customers.verify', $item->id) . '" title="Edit"><i class="fa fa-user-check"></i> ' . __('custom.verify') . ' </a>';
                     }else{
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.customers.verify', $item->id) . '" title="Edit"><i class="fa fa-user-slash"></i> ' . __('custom.unverified') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('admin.customers.verify', $item->id) . '" title="Edit"><i class="fa fa-user-slash"></i> ' . __('custom.unverified') . ' </a>';
                     }
                 }
 
@@ -53,15 +53,10 @@ class CustomerDataTable extends DataTable
                     $buttons .= '<form action="' . route('admin.customers.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
                     <input type="hidden" name="_token" value="' . csrf_token() . '">
                     <input type="hidden" name="_method" value="DELETE">
-                    <button class="dropdown-item text-danger delete-list-data" data-from-name="'. $item->full_name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+                    <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="'. $item->full_name.'" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
                     ';
                 }
-                return '<div class="dropdown btn-group dropup">
-            <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-            <div class="dropdown-menu">
-            ' . $buttons . '
-            </div>
-            </div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })->editColumn('avatar', function ($item) {
                 return '<img class="img-64" src="' . getStorageImage(Customer::FILE_STORE_PATH, $item->avatar) . '" alt="' . $item->name . '" />';
             })->editColumn('status', function ($item) {
@@ -77,16 +72,30 @@ class CustomerDataTable extends DataTable
                 $data = '<span class="badge ' . $badge . '">' . Str::upper($text) . '</span>';
 
                 return $data;
+            })->addColumn('balance', function ($item) {
+                // Where the customer stands overall — prepaid credit minus what
+                // they still owe (Customer::netBalance()), computed from the
+                // aggregates already selected below. An unpaid invoice pushes
+                // this down straight away; opening_balance itself stays put.
+                $due     = ($item->total_invoice_amount ?? 0) - ($item->total_paid_amount ?? 0);
+                $balance = ($item->opening_balance ?? 0) - $due;
+                $class   = $balance < 0 ? 'text-danger' : 'text-success';
+
+                return '<span class="' . $class . '">' . currencySymbol() . ' ' . number_format($balance, 2) . '</span>';
             })->addColumn('total_amount', function ($item) {
-                return currencySymbol() . ' ' . number_format(($item->total_invoice_amount ?? 0) + ($item->opening_balance ?? 0), 2);
+                // Value invoiced to the customer. The opening balance is prepaid
+                // credit, not a sale, so it is not part of this figure.
+                return currencySymbol() . ' ' . number_format($item->total_invoice_amount ?? 0, 2);
             })->addColumn('total_paid', function ($item) {
                 return currencySymbol() . ' ' . number_format($item->total_paid_amount ?? 0, 2);
             })->addColumn('total_due', function ($item) {
-                $totalAmount = ($item->total_invoice_amount ?? 0) + ($item->opening_balance ?? 0);
-                $totalPaid = $item->total_paid_amount ?? 0;
-                $totalDue = $totalAmount - $totalPaid;
+                // Same definition as Customer::totalDue(), aggregated in the query
+                // below to keep the listing to a single pass: what was invoiced
+                // minus what was actually paid against those invoices. The opening
+                // balance never nets against it.
+                $totalDue = ($item->total_invoice_amount ?? 0) - ($item->total_paid_amount ?? 0);
                 return currencySymbol() . ' ' . number_format($totalDue, 2);
-            })->rawColumns(['status', 'is_verified', 'avatar', 'action'])->addIndexColumn();
+            })->rawColumns(['status', 'is_verified', 'avatar', 'action', 'balance'])->addIndexColumn();
     }
 
     /**
@@ -163,6 +172,7 @@ class CustomerDataTable extends DataTable
             Column::make('phone', 'phone')->title(__('custom.phone')),
             Column::make('status', 'status')->title(__('custom.status')),
             Column::make('is_verified', 'is_verified')->title(__('custom.is_verified')),
+            Column::computed('balance')->title(__('custom.balance')),
             Column::computed('total_amount')->title(__('custom.total_amount')),
             Column::computed('total_paid')->title(__('custom.total_paid')),
             Column::computed('total_due')->title(__('custom.total_due')),

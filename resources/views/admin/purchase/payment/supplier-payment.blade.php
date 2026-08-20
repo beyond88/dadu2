@@ -81,8 +81,8 @@
                         </div>
 
                         <div class="form-group col-md-6">
-                            <label>{{ __t('payment_type') }} <span class="text-danger">*</span></label>
-                            <select name="payment_type" class="form-control select2" required>
+                            <label>{{ __t('payment_type') }}</label>
+                            <select name="payment_type" class="form-control select2">
                                 <option value="">-- Select Payment Type --</option>
                                 <option value="cash"        {{ old('payment_type') == 'cash'        ? 'selected' : '' }}>Cash</option>
                                 <option value="bank"        {{ old('payment_type') == 'bank'        ? 'selected' : '' }}>Bank Transfer</option>

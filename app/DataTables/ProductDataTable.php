@@ -29,30 +29,25 @@ class ProductDataTable extends DataTable
             })
             ->addColumn('action', function ($item) {
                 $buttons = '';
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.products.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.products.show', $item->id) . '" title="Show"><i class="fa fa-eye"></i> ' . __('custom.show') . ' </a>';
                 if (auth()->user()->can('Edit Product')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.products.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.products.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
                 }
                 if (auth()->user()->can('Stock Product')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.product-stocks.edit', $item->id) . '" title="Stock And Price"><i class="mdi mdi-format-list-bulleted"></i> ' . __('custom.stock_and_price') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.product-stocks.edit', $item->id) . '" title="Stock And Price"><i class="mdi mdi-format-list-bulleted"></i> ' . __('custom.stock_and_price') . ' </a>';
                 }
 
-                // $buttons .= '<a class="dropdown-item update-stock" data-id="' . $item->id . '" href="#" title="Update Stock"><i class="mdi mdi-stack-exchange"></i> ' . __('custom.update_stock') . ' </a>';
+                // $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn update-stock" data-id="' . $item->id . '" href="#" title="Update Stock"><i class="mdi mdi-stack-exchange"></i> ' . __('custom.update_stock') . ' </a>';
 
-                $buttons .= '<a class="dropdown-item" href="' . route('admin.products.barcode.download', $item->id) . '" title="Download Barcode"><i class="mdi mdi-download"></i> ' . __('custom.download_barcode') . ' </a>';
+                $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('admin.products.barcode.download', $item->id) . '" title="Download Barcode"><i class="mdi mdi-download"></i> ' . __('custom.download_barcode') . ' </a>';
                 if (auth()->user()->can('Delete Product')) {
                     $buttons .= '<form action="' . route('admin.products.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post" >
 <input type="hidden" name="_token" value="' . csrf_token() . '">
 <input type="hidden" name="_method" value="DELETE">
-<button class="dropdown-item text-danger delete-list-data" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+<button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
 ';
                 }
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('is_variant', function ($item) {
                 if ($item->is_variant) {
@@ -208,9 +203,9 @@ class ProductDataTable extends DataTable
                 $badge = $item->status == Product::STATUS_ACTIVE ? "badge-success" : "badge-danger";
                 return '<span class="badge ' . $badge . '">' . Str::upper($item->status) . '</span>';
             })
-            /*->editColumn('tax_status', function ($item) {
+            ->editColumn('tax_status', function ($item) {
                 return Str::upper($item->tax_status);
-            })*/
+            })
             ->editColumn('stock_value', function ($item) {
                 $stockValue = $item->stock_value;
                 return currencySymbol() . make2decimal($stockValue);
@@ -315,7 +310,7 @@ class ProductDataTable extends DataTable
             Column::computed('stock_value', __('custom.stock_value')),
             Column::make('is_variant', 'is_variant')->title(__('custom.variant'))->visible(false),
             Column::make('is_batch_product', 'is_batch_product')->title(__('custom.batch'))->visible(false),
-            /*Column::make('tax_status', 'tax_status')->title(__('custom.tax')),*/
+            Column::make('tax_status', 'tax_status')->title(__('custom.tax')),
             Column::make('status', 'status')->title(__('custom.status')),
         ];
     }

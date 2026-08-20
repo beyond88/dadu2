@@ -44,7 +44,7 @@
                             <div class="col-md-2">
                                 <div class="form-group">
                                     <label>{{ __('custom.to_date') }}</label>
-                                    <input type="date" name="to_date" class="form-control" value="{{ request('to_date') }}">
+                                    <input type="date" name="to_date" class="form-control" value="{{ request('to_date', now()->toDateString()) }}">
                                 </div>
                             </div>
                             <div class="col-md-2">
@@ -193,7 +193,7 @@
                                             </a>
                                         </td>
                                         <td>
-                                            <span class="badge badge-info">{{ $payment->payment_type }}</span>
+                                            @if($payment->payment_type)<span class="badge badge-info">{{ $payment->payment_type }}</span>@else<span class="text-muted">-</span>@endif
                                         </td>
                                         <td class="text-right">
                                             <strong class="text-success">

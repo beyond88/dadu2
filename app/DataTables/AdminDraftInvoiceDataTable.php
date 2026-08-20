@@ -26,23 +26,18 @@ class AdminDraftInvoiceDataTable extends DataTable
                 $buttons = '';
 
                 if (auth()->user()->can('Show Draft Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.draft-invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.draft-invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
                 }
 
                 if (auth()->user()->can('Delete Draft Invoice')) {
                     $buttons .= '<form action="' . route('admin.draft-invoices.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post">
                         <input type="hidden" name="_token" value="' . csrf_token() . '">
                         <input type="hidden" name="_method" value="DELETE">
-                        <button class="dropdown-item text-danger delete-list-data" data-from-name="' . 'Inv-no ' . make8digits($item->id) . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
+                        <button class="btn btn-sm btn-outline-danger ic-act-btn delete-list-data" data-from-name="' . 'Inv-no ' . make8digits($item->id) . '" data-from-id="' . $item->id . '"   type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i> ' . __('custom.delete') . '</button></form>
                         ';
                 }
 
-                return '<div class="dropdown btn-group dropup">
-                            <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-                            <div class="dropdown-menu">
-                            ' . $buttons . '
-                            </div>
-                            </div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('id', function ($item) {
                 return '<a class="btn btn-link" href="' . route('admin.draft-invoices.show', $item->id) . '" title="Show">' . make8digits($item->id) . ' </a>';

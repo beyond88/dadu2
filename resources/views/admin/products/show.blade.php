@@ -118,7 +118,16 @@
                             <small class="text-muted">/kg</small>
                         </dd>
                         @endif
-                        {{-- Weight, Weight Unit, Notes, Description, Custom tax amount, Tax/Vat, Is Variant, Is Split sale, Image hidden per request --}}
+                        <dt class="col-sm-3">{{ __('custom.tax') }}</dt>
+                        <dd class="col-sm-9">
+                            : {{ $product_details->tax_status == \App\Models\Product::TAX_INCLUDED ? 'included' : 'Excluded' }}
+                        </dd>
+                        <dt class="col-sm-3">{{ __('custom.custom_tax_amount') }}</dt>
+                        <dd class="col-sm-9">
+                            : {{ $product_details->custom_tax }} %
+                        </dd>
+
+                        {{-- Weight, Weight Unit, Notes, Description, Is Variant, Is Split sale, Image hidden per request --}}
                         {{--
                         <dt class="col-sm-3">{{ __('custom.weight') }}</dt>
                         <dd class="col-sm-9">
@@ -135,14 +144,6 @@
                         <dt class="col-sm-3">{{ __('custom.desc') }}</dt>
                         <dd class="col-sm-9">
                             : {!! $product_details->desc !!}
-                        </dd>
-                        <dt class="col-sm-3">{{ __('custom.custom_tax_amount') }}</dt>
-                        <dd class="col-sm-9">
-                            : {{ $product_details->custom_tax }} %
-                        </dd>
-                        <dt class="col-sm-3">{{ __('custom.tax') }}</dt>
-                        <dd class="col-sm-9">
-                            : {{ $product_details->tax_status == \App\Models\Product::TAX_INCLUDED ? 'included' : 'Excluded' }}
                         </dd>
                         <dt class="col-sm-3">{{ __('custom.is_variant') }}</dt>
                         <dd class="col-sm-9">

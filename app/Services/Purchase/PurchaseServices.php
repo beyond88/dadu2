@@ -151,6 +151,10 @@ class PurchaseServices extends BaseService
         $data = [
             'date'              => $purchase->date,
             'total'             => $purchase->total,
+            // Receive into the warehouse chosen on the purchase form. Without this the
+            // receive service falls back to the default warehouse and the stock lands
+            // somewhere other than the warehouse shown on the purchase.
+            'warehouse_id'      => $purchase->warehouse_id,
             'purchase_item_id'  => [],
             'product_id'        => [],
             'product_stock_id'  => [],

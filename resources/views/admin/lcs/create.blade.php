@@ -22,47 +22,92 @@
                     <div class="card-body">
                         <h4 class="mt-0 header-title mb-2">{{ __('custom.lc_information') }}</h4>
 
-                        {{-- LC Information entry panel --}}
-                        <div class="ic-entry-wrap mb-3">
-                            <div class="form-row">
-                                <div class="form-group col-12 col-md-5">
-                                    <label for="name">{{ __('custom.lc_name') }} <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm @error('name') is-invalid @enderror"
-                                           id="name" name="name" value="{{ old('name') }}" required autofocus>
-                                    @error('name')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-6 col-md-3">
-                                    <label for="dollar_price">{{ __('custom.price_usd') }} <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.01" min="0" class="form-control form-control-sm text-right calc-input @error('dollar_price') is-invalid @enderror"
-                                           id="dollar_price" name="dollar_price" value="{{ old('dollar_price') }}" placeholder="{{ __('custom.price_usd') }}" required>
-                                    @error('dollar_price')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-6 col-md-3">
-                                    <label for="usd_rate">{{ __('custom.usd_rate') }} <span class="text-danger">*</span></label>
-                                    <input type="number" step="0.0001" min="0" class="form-control form-control-sm text-right calc-input @error('usd_rate') is-invalid @enderror"
-                                           id="usd_rate" name="usd_rate" value="{{ old('usd_rate') }}" placeholder="{{ __('custom.usd_rate') }}" required>
-                                    @error('usd_rate')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
+                        {{-- One USD rate applies to every LC row below --}}
+                        <div class="row justify-content-end">
+                            <div class="col-12 col-md-6">
+                                <div class="ic-entry-wrap mb-3">
+                                    <div class="form-row justify-content-end">
+                                        <div class="form-group col-12 col-md-6">
+                                            <label for="usd_rate">{{ __('custom.usd_rate') }} <span class="text-danger">*</span></label>
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm text-right calc-input @error('usd_rate') is-invalid @enderror"
+                                                   id="usd_rate" name="usd_rate" value="{{ old('usd_rate') }}" placeholder="{{ __('custom.usd_rate') }}" required autofocus>
+                                            @error('usd_rate')
+                                                <span class="invalid-feedback">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- LC rows: name + price ($), repeatable like the expenses below --}}
+                        <div class="form-row d-none d-md-flex">
+                            <div class="col-md-7"><label class="mb-1">{{ __('custom.lc_name') }}</label></div>
+                            <div class="col-md-4"><label class="mb-1">{{ __('custom.price_usd') }}</label></div>
+                            <div class="col-md-1"></div>
+                        </div>
+
+                        <div id="lc-repeater" class="ic-entry-wrap mb-2">
+                            @php
+                                $oldItems = old('items', array_fill(0, 3, ['name' => '', 'dollar_price' => '']));
+                            @endphp
+                            @foreach($oldItems as $index => $item)
+                                <div class="form-row lc-row">
+                                    <div class="form-group col-12 col-md-7">
+                                        <input type="text" name="items[{{ $index }}][name]" value="{{ $item['name'] ?? '' }}" class="form-control form-control-sm" placeholder="{{ __('custom.lc_name') }}">
+                                    </div>
+                                    <div class="form-group col-8 col-md-4">
+                                        <input type="number" step="0.01" min="0" name="items[{{ $index }}][dollar_price]" value="{{ $item['dollar_price'] ?? '' }}" class="form-control form-control-sm text-right calc-input lc-price" placeholder="{{ __('custom.price_usd') }}">
+                                    </div>
+                                    <div class="form-group col-4 col-md-1">
+                                        <button type="button" class="btn btn-danger btn-sm btn-block remove-lc"><i class="mdi mdi-delete"></i></button>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="form-row mb-2">
+                            <div class="col-12 text-right">
+                                <button type="button" class="btn btn-success btn-sm" id="add-lc"><i class="mdi mdi-plus"></i> {{ __('custom.add_lc') }}</button>
+                            </div>
+                        </div>
+
+                        <div class="form-row align-items-center mb-3">
+                            <div class="col-12 col-md-7 text-md-right">
+                                <label class="mb-0">{{ __('custom.total_lc_price') }}</label>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <input type="text" id="total-lc-price" class="form-control form-control-sm text-right ic-readbox" value="0.00" readonly>
+                            </div>
+                        </div>
+
+                        @error('items')
+                            <p class="text-danger small">{{ $message }}</p>
+                        @enderror
+
+
                         {{-- Expenses entry panel --}}
                         <h4 class="mt-0 header-title mb-2">{{ __('custom.expenses') }}</h4>
+                        {{-- Column labels, so the expense currency is as visible as the Price ($) one --}}
+                        <div class="form-row d-none d-md-flex">
+                            <div class="col-md-7"><label class="mb-1">{{ __('custom.expense_name') }}</label></div>
+                            <div class="col-md-4"><label class="mb-1">{{ __('custom.expense_bdt') }}</label></div>
+                            <div class="col-md-1"></div>
+                        </div>
+
                         <div id="expense-repeater" class="ic-entry-wrap mb-2">
-                            @php $oldExpenses = old('expenses', [['expense_name' => '', 'amount' => '']]); @endphp
+                            @php
+                                // Standard LC charges, prefilled — leave an amount blank to skip that row.
+                                $defaultExpenses = ['Bank charge', 'Document charge', 'Other payments', 'Insurance', 'Transportation', 'Duty tax & other charges'];
+                                $oldExpenses = old('expenses', array_map(fn ($name) => ['expense_name' => $name, 'amount' => ''], $defaultExpenses));
+                            @endphp
                             @foreach($oldExpenses as $index => $expense)
                                 <div class="form-row expense-row">
                                     <div class="form-group col-12 col-md-7">
-                                        <input type="text" name="expenses[{{$index}}][expense_name]" value="{{ $expense['expense_name'] }}" class="form-control form-control-sm" placeholder="{{ __('custom.expense_name') }}" required>
+                                        <input type="text" name="expenses[{{$index}}][expense_name]" value="{{ $expense['expense_name'] }}" class="form-control form-control-sm" placeholder="{{ __('custom.expense_name') }}">
                                     </div>
                                     <div class="form-group col-8 col-md-4">
-                                        <input type="number" step="0.01" min="0" name="expenses[{{$index}}][amount]" value="{{ $expense['amount'] }}" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}" required>
+                                        <input type="number" step="0.01" min="0" name="expenses[{{$index}}][amount]" value="{{ $expense['amount'] }}" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}">
                                     </div>
                                     <div class="form-group col-4 col-md-1">
                                         <button type="button" class="btn btn-danger btn-sm btn-block remove-expense"><i class="mdi mdi-delete"></i></button>
@@ -81,7 +126,7 @@
                             <div class="form-row">
                                 <div class="form-group col-6 col-md-4">
                                     <label>{{ __('custom.usd_rate') }}</label>
-                                    <input type="text" id="calc-usd-rate-display" class="form-control form-control-sm text-right ic-readbox" value="0.0000" readonly>
+                                    <input type="text" id="calc-usd-rate-display" class="form-control form-control-sm text-right ic-readbox" value="0.00" readonly>
                                 </div>
                                 <div class="form-group col-6 col-md-4">
                                     <label>{{ __('custom.lc_amount_bdt') }}</label>
@@ -103,8 +148,8 @@
                         </div>
 
                         <div class="mt-2 text-right">
-                            <a href="{{ route('admin.lcs.index') }}" class="btn btn-secondary btn-sm"><i class="mdi mdi-arrow-left"></i> {{ __('custom.cancel') }}</a>
-                            <button type="submit" class="btn btn-primary btn-sm"><i class="mdi mdi-save"></i> {{ __('custom.save') }}</button>
+                            <a href="{{ route('admin.lcs.index') }}" class="btn btn-secondary ic-form-action"><i class="mdi mdi-arrow-left"></i> {{ __('custom.cancel') }}</a>
+                            <button type="submit" class="btn btn-primary ic-form-action"><i class="mdi mdi-save"></i> {{ __('custom.save') }}</button>
                         </div>
                     </div>
                 </div>
@@ -140,6 +185,9 @@
         .ic-lc-form .ic-entry-wrap { padding: 10px 10px 0; background: #f4f6f9; border: 1px solid #dbe0e6; border-radius: 6px; }
         .ic-lc-form .expense-row { margin-bottom: 0; }
 
+        /* Cancel / Save sit larger than the compact form inputs */
+        .ic-lc-form .ic-form-action { padding: 8px 22px; font-size: .95rem; font-weight: 600; }
+
         /* Read-only calculation boxes (gray, like the transaction summary) */
         .ic-lc-form .form-control[readonly], .ic-lc-form .ic-readbox { background: #e9ecef; font-weight: 600; }
         .ic-lc-form .ic-summary label { color: #6c757d; }
@@ -152,16 +200,47 @@
     <script>
         $(document).ready(function() {
             let expenseIndex = {{ count($oldExpenses) }};
+            let lcIndex = {{ count($oldItems) }};
+
+            // Add LC row
+            $('#add-lc').on('click', function() {
+                const html = `
+                    <div class="form-row lc-row">
+                        <div class="form-group col-12 col-md-7">
+                            <input type="text" name="items[${lcIndex}][name]" class="form-control form-control-sm" placeholder="{{ __('custom.lc_name') }}">
+                        </div>
+                        <div class="form-group col-8 col-md-4">
+                            <input type="number" step="0.01" min="0" name="items[${lcIndex}][dollar_price]" class="form-control form-control-sm text-right calc-input lc-price" placeholder="{{ __('custom.price_usd') }}">
+                        </div>
+                        <div class="form-group col-4 col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm btn-block remove-lc"><i class="mdi mdi-delete"></i></button>
+                        </div>
+                    </div>
+                `;
+                $('#lc-repeater').append(html);
+                lcIndex++;
+                calculateBreakdown();
+            });
+
+            // Remove LC row — totals refresh immediately
+            $(document).on('click', '.remove-lc', function() {
+                if ($('.lc-row').length > 1) {
+                    $(this).closest('.lc-row').remove();
+                    calculateBreakdown();
+                } else {
+                    alert("{{ __('custom.at_least_one_lc_required') }}");
+                }
+            });
 
             // Add repeater
             $('#add-expense').on('click', function() {
                 const html = `
                     <div class="form-row expense-row">
                         <div class="form-group col-12 col-md-7">
-                            <input type="text" name="expenses[${expenseIndex}][expense_name]" class="form-control form-control-sm" placeholder="{{ __('custom.expense_name') }}" required>
+                            <input type="text" name="expenses[${expenseIndex}][expense_name]" class="form-control form-control-sm" placeholder="{{ __('custom.expense_name') }}">
                         </div>
                         <div class="form-group col-8 col-md-4">
-                            <input type="number" step="0.01" min="0" name="expenses[${expenseIndex}][amount]" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}" required>
+                            <input type="number" step="0.01" min="0" name="expenses[${expenseIndex}][amount]" class="form-control form-control-sm text-right calc-input expense-amount" placeholder="{{ __('custom.amount_bdt') }}">
                         </div>
                         <div class="form-group col-4 col-md-1">
                             <button type="button" class="btn btn-danger btn-sm btn-block remove-expense"><i class="mdi mdi-delete"></i></button>
@@ -183,14 +262,43 @@
                 }
             });
 
+            // The USD rate drives every calculation, so it has to be entered
+            // before any LC price can be typed in.
+            let usdRateAlertOpen = false;
+
+            function usdRateEntered($priceInput) {
+                if ($('#usd_rate').val()) {
+                    return true;
+                }
+                if (!usdRateAlertOpen) {
+                    usdRateAlertOpen = true;
+                    alert("{{ __('custom.enter_usd_rate_first') }}");
+                    usdRateAlertOpen = false;
+                    $priceInput.val('');
+                    $('#usd_rate').trigger('focus');
+                }
+                return false;
+            }
+
+            $(document).on('focus input', '.lc-price', function() {
+                usdRateEntered($(this));
+            });
+
             // Trigger calculation
             $(document).on('input', '.calc-input', function() {
                 calculateBreakdown();
             });
 
             function calculateBreakdown() {
-                let dollarPrice = parseFloat($('#dollar_price').val()) || 0;
+                // Every LC row shares the one USD rate, so the calculation runs
+                // on the total of the LC prices.
+                let dollarPrice = 0;
+                $('.lc-price').each(function() {
+                    dollarPrice += parseFloat($(this).val()) || 0;
+                });
                 let usdRate = parseFloat($('#usd_rate').val()) || 0;
+
+                $('#total-lc-price').val(dollarPrice.toFixed(2));
 
                 let lcAmountBdt = dollarPrice * usdRate;
 
@@ -200,9 +308,10 @@
                 });
 
                 let finalCost = lcAmountBdt + totalExpense;
-                let perDollarCost = dollarPrice > 0 ? (totalExpense / dollarPrice) : 0;
+                // Landed cost of one dollar = USD rate + the expense share it carries.
+                let perDollarCost = dollarPrice > 0 ? (finalCost / dollarPrice) : usdRate;
 
-                $('#calc-usd-rate-display').val(usdRate.toFixed(4));
+                $('#calc-usd-rate-display').val(usdRate.toFixed(2));
                 $('#calc-lc-amount').val(lcAmountBdt.toFixed(2));
                 $('#calc-total-expense').val(totalExpense.toFixed(2));
                 $('#calc-final-cost').val(finalCost.toFixed(2));

@@ -12,7 +12,7 @@
                 </th>
                 <th colspan="2">
                     {{ __("custom.alert_quantity") }}
-                    <input type="number" class="form-control" name="alert_quantity" required v-model="stock_alert_quantity" :placeholder='__("custom.alert_quantity")'>
+                    <input type="number" class="form-control" name="alert_quantity" v-model="stock_alert_quantity" :placeholder='__("custom.alert_quantity")'>
                 </th>
             </tr>
             <tr style="white-space: nowrap;">

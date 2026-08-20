@@ -28,50 +28,46 @@ class InvoiceDataTable extends DataTable
                 $buttons = '';
 
                 if (auth()->user()->can('Show Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.invoices.show', $item->id) . '" title="Show"><i class="mdi mdi mdi-desktop-mac"></i> ' . __('custom.show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn js-invoice-print" href="' . route('admin.invoices.show', ['invoice' => $item->id, 'print' => 1]) . '" title="Print"><i class="mdi mdi-printer"></i> ' . __('custom.print') . ' </a>';
                 }
                 if (auth()->user()->can('Edit Invoice')) {
                     if ($item->status == Invoice::STATUS_PENDING && !$item->platforms()->exists()) {
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-primary ic-act-btn" href="' . route('admin.invoices.edit', $item->id) . '" title="Edit"><i class="mdi mdi-square-edit-outline"></i> ' . __('custom.edit') . ' </a>';
                     }
                 }
                 if ($item->status != Invoice::STATUS_PENDING && auth()->user()->can('Return Invoice') && !$item->platforms()->exists()) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.sales-return.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-secondary ic-act-btn" href="' . route('admin.sales-return.create', $item->id) . '" title="Sales Return"><i class="mdi mdi-undo"></i> ' . __('custom.return') . ' </a>';
                 }
                 if (auth()->user()->can('View Payment Invoice')) {
-                    $buttons .= '<a class="dropdown-item view-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="View Payment"><i class="mdi mdi-cash-multiple"></i> ' . __('custom.view_payment') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn view-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="View Payment"><i class="mdi mdi-cash-multiple"></i> ' . __('custom.view_payment') . ' </a>';
                 }
                 if ($item->status != Invoice::STATUS_PAID && auth()->user()->can('Make Payment Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.makePayment', $item->id) . '" title="Make Payment"><i class="mdi mdi-cash"></i> ' . __('custom.make_payment') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.invoices.makePayment', $item->id) . '" title="Make Payment"><i class="mdi mdi-cash"></i> ' . __('custom.make_payment') . ' </a>';
                 }
                 if (auth()->user()->can('Download Invoice')) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.download', $item->id) . '" title="Download"><i class="mdi mdi-briefcase-download-outline"></i> ' . __('custom.download') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn" href="' . route('admin.invoices.download', $item->id) . '" title="Download"><i class="mdi mdi-briefcase-download-outline"></i> ' . __('custom.download') . ' </a>';
                 }
 //                if (auth()->user()->can('delivery Invoice')) {
                 if ($item->delivery_status != Invoice::DELIVERY_STATUS_DELIVERED &&  ($item->status == Invoice::STATUS_PAID || $item->status == Invoice::STATUS_PARTIALLY_PAID)) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.delivery.status.change', ['id' => $item->id, 'status' => Invoice::DELIVERY_STATUS_DELIVERED]) . '" title="Download"><i class="mdi mdi-truck-delivery"></i> ' . __('custom.make_delivered') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.invoices.delivery.status.change', ['id' => $item->id, 'status' => Invoice::DELIVERY_STATUS_DELIVERED]) . '" title="Download"><i class="mdi mdi-truck-delivery"></i> ' . __('custom.make_delivered') . ' </a>';
                 }
                 if ($item->delivery_status != Invoice::DELIVERY_STATUS_CANCELED ) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.invoices.delivery.status.change', ['id' => $item->id, 'status' => Invoice::DELIVERY_STATUS_CANCELED]) . '" title="Download"><i class="mdi mdi-cancel"></i> ' . __('custom.make_cancel') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('admin.invoices.delivery.status.change', ['id' => $item->id, 'status' => Invoice::DELIVERY_STATUS_CANCELED]) . '" title="Download"><i class="mdi mdi-cancel"></i> ' . __('custom.make_cancel') . ' </a>';
                 }
 //                }
                 if (auth()->user()->can('Send Invoice')) {
-                    $buttons .= '<a class="dropdown-item send-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="Send"><i class="mdi mdi-email-outline"></i> ' . __('custom.send') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn send-invoice-payment" data-invoice-id="' . $item->id . '" href="#" title="Send"><i class="mdi mdi-email-outline"></i> ' . __('custom.send') . ' </a>';
                 }
                 if (auth()->user()->can('Link Invoice')) {
-                    $buttons .= '<a class="dropdown-item live-invoice-payment" data-invoice-token="' . $item->token . '" href="#" title="Live Link"><i class="mdi mdi-web"></i> ' . __('custom.link') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-dark ic-act-btn live-invoice-payment" data-invoice-token="' . $item->token . '" href="#" title="Live Link"><i class="mdi mdi-web"></i> ' . __('custom.link') . ' </a>';
                 }
                 $delete_btn = '<form action="' . route('admin.invoices.destroy', $item->id) . '"  id="delete-form-' . $item->id . '" method="post" class="d-inline">
                     <input type="hidden" name="_token" value="' . csrf_token() . '">
                     <input type="hidden" name="_method" value="DELETE">
                     <button class="btn btn-danger btn-sm delete-list-data" data-from-name="' . 'inv-' . make8digits($item->id) . '" data-from-id="' . $item->id . '" type="button" title="Delete"><i class="mdi mdi-trash-can-outline"></i></button></form>';
 
-                return '<div class="dropdown btn-group dropup">
-  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-  <div class="dropdown-menu">
-  ' . $buttons . '
-  </div>
-</div> ' . $delete_btn;
+                return '<div class="ic-action-inline">' . $buttons . '</div>' . $delete_btn;
             })->editColumn('id', function ($item) {
                 return '<a class="btn btn-link" href="' . route('admin.invoices.show', $item->id) . '" title="Show">'.make8digits($item->id).' </a>';
             })->editColumn('customer', function ($item) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\PurchaseItem;
+use Illuminate\Http\Request;
 
 class AxiosController extends Controller
 {
@@ -62,8 +63,12 @@ public function productStockSearchByWarehouse($query, $warehouse_id)
     return $filtered->values();
 }
 
-public function productStockSearchNameSku($query)
+public function productStockSearchNameSku($query, Request $request)
 {
+    // Optional: scope the suggestions to the warehouse selected on the form, so the
+    // same product is not offered from several warehouses at once.
+    $warehouseId = $request->query('warehouse_id');
+
     $results = ProductStock::query()
         ->with([
             'product',
@@ -98,6 +103,13 @@ public function productStockSearchNameSku($query)
 
     foreach ($grouped as $productId => $stocks) {
         $product = $stocks->first()->product;
+
+        // Keep the rows of the selected warehouse. A product with no stock row there
+        // yet is still offered (one entry) — the row is created when it is received.
+        if ($warehouseId) {
+            $scoped = $stocks->where('warehouse_id', (int) $warehouseId);
+            $stocks = $scoped->isNotEmpty() ? $scoped : $stocks->take(1);
+        }
 
         if ($product && $product->is_batch_product) {
             // Batch product: take only the first stock record

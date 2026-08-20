@@ -93,7 +93,7 @@
                                 <td>{{ \Carbon\Carbon::parse($payment->date)->format('d M Y') }}</td>
                                 <td>
                                     <span class="badge badge-soft-primary px-2 py-1">
-                                        {{ strtoupper(str_replace('_', ' ', $payment->payment_type)) }}
+                                        {{ $payment->payment_type ? strtoupper(str_replace('_', ' ', $payment->payment_type)) : '-' }}
                                     </span>
                                 </td>
                                 <td class="text-right font-weight-bold">{{ currencySymbol() }}{{ make2decimal($payment->amount) }}</td>

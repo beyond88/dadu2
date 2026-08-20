@@ -50,7 +50,7 @@
 {{--                    </div>--}}
 {{--                    <div class="form-group col-sm-12 col-md-6 col-xl-4">--}}
 {{--                        <label>{{ __('custom.phone') }}</label>--}}
-{{--                        <input type="tel" id="phone" value="{{ $user->phone ?? '+1' }}" name="phone"--}}
+{{--                        <input type="tel" id="phone" value="{{ $user->phone ?? '+880' }}" name="phone"--}}
 {{--                            class="form-control phone">--}}
 
 {{--                        @error('phone')--}}
@@ -142,7 +142,7 @@
                     <div class="form-group col-sm-6">
                         <label for="">{{__('custom.phone')}} <span class="error">*</span></label>
                         <input type="text" id="phone" name="phone" class="form-control phone"
-                               value="{{ $customer->phone ?? '+1' }}" required>
+                               value="{{ $customer->phone ?? '+880' }}" required>
                         @error('phone')
                         <p class="error">{{ $message }}</p>
                         @enderror
@@ -300,7 +300,7 @@
                             <div class="form-group col-sm-6">
                                 <label for="">{{__('custom.phone')}}</label>
                                 <input type="text" id="phone2" name="b_phone" class="form-control phone"
-                                       value="{{ $customer->b_phone ?? '+1' }}">
+                                       value="{{ $customer->b_phone ?? '+880' }}">
                                 @error('b_phone')
                                 <p class="error">{{ $message }}</p>
                                 @enderror

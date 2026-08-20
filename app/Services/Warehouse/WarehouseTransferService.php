@@ -52,6 +52,17 @@ class WarehouseTransferService
             if ($sourceStock->quantity < $qty) {
                 $name = $sourceStock->product?->name ?? 'Product';
                 $errors[] = "{$name}: requested {$qty}, available {$sourceStock->quantity}.";
+                continue;
+            }
+
+            // Weight based products move in whole barrels only — 25 kg per barrel
+            // means 25/50/75 kg is fine, 30 kg (1.2 barrel) is not.
+            $kgPerBarrel = (float) ($sourceStock->product?->kg_per_barrel ?? 0);
+
+            if ($kgPerBarrel > 0 && abs(fmod($qty, $kgPerBarrel)) > 0.0001) {
+                $name    = $sourceStock->product?->name ?? 'Product';
+                $barrels = round($qty / $kgPerBarrel, 2);
+                $errors[] = "{$name}: {$qty} kg = {$barrels} barrel. Quantity must be a multiple of {$kgPerBarrel} kg (1 barrel).";
             }
         }
 

@@ -28,26 +28,21 @@ class SaleReturnRequestDataTable extends DataTable
             ->addColumn('action', function ($item) {
                 $buttons = '';
                 if (auth()->guard('customer')->check()) {
-                    $buttons .= '<a class="dropdown-item" href="' . route('customer.products-return-request.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('customer.products-return-request.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
                 } else {
-                    $buttons .= '<a class="dropdown-item" href="' . route('admin.products-return-request.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
+                    $buttons .= '<a class="btn btn-sm btn-outline-info ic-act-btn" href="' . route('admin.products-return-request.show', $item->id) . '" title="' . __t('show') . '"><i class="fa fa-eye"></i> ' . __t('show') . ' </a>';
                     if ($item->status == SaleReturnRequest::STATUS_PENDING) {
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.products-return-request.accept', $item->id) . '" title="' . __t('accept') . '"><i class="fa fa-check"></i> ' . __t('accept') . ' </a>';
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.products-return-request.reject', $item->id) . '" title="' . __t('reject') . '"><i class="fa fa-times"></i> ' . __t('reject') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.products-return-request.accept', $item->id) . '" title="' . __t('accept') . '"><i class="fa fa-check"></i> ' . __t('accept') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('admin.products-return-request.reject', $item->id) . '" title="' . __t('reject') . '"><i class="fa fa-times"></i> ' . __t('reject') . ' </a>';
                     } elseif ($item->status == SaleReturnRequest::STATUS_REJECTED) {
-                        $buttons .= '<a class="dropdown-item" href="' . route('admin.products-return-request.accept', $item->id) . '" title="' . __t('accept') . '"><i class="fa fa-check"></i> ' . __t('accept') . ' </a>';
+                        $buttons .= '<a class="btn btn-sm btn-outline-success ic-act-btn" href="' . route('admin.products-return-request.accept', $item->id) . '" title="' . __t('accept') . '"><i class="fa fa-check"></i> ' . __t('accept') . ' </a>';
                     } elseif ($item->status == SaleReturnRequest::STATUS_ACCEPTED) {
-                        //                        $buttons .= '<a class="dropdown-item" href="' . route('admin.products-return-request.reject', $item->id) . '" title="' . __t('reject') . '"><i class="fa fa-times"></i> ' . __t('reject') . ' </a>';
+                        //                        $buttons .= '<a class="btn btn-sm btn-outline-warning ic-act-btn" href="' . route('admin.products-return-request.reject', $item->id) . '" title="' . __t('reject') . '"><i class="fa fa-times"></i> ' . __t('reject') . ' </a>';
                     }
                 }
 
 
-                return '<div class="dropdown btn-group dropup">
-                  <a href="#" class="btn btn-dark btn-sm" data-toggle="dropdown" data-boundary="viewport"  aria-haspopup="true" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i></a>
-                  <div class="dropdown-menu">
-                  ' . $buttons . '
-                  </div>
-                </div>';
+                return '<div class="ic-action-inline">' . $buttons . '</div>';
             })
             ->editColumn('invoice_id', function ($item) {
                 if (auth()->guard('customer')->check()) {

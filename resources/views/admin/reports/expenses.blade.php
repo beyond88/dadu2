@@ -31,7 +31,7 @@
                                 </div>
                                 <div class="col-md-4 col-lg-4 mb-2">
                                     <div class="form-group mb-lg-0">
-                                        <input type="text" name="to_date" value="{{ request()->to_date }}" id="to_date"
+                                        <input type="text" name="to_date" value="{{ request('to_date', now()->toDateString()) }}" id="to_date"
                                             class="form-control" placeholder="To Date" autocomplete="off" required />
                                     </div>
                                 </div>

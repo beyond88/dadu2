@@ -23,12 +23,9 @@ class InvoicePaymentController extends Controller
      */
     public function createCustomerPayment(Customer $customer)
     {
-        // Get all invoices for this customer
-        $invoices = Invoice::where('customer_id', $customer->id)->get();
-        
-        $totalInvoiced = $invoices->sum('total');
-        $totalPaid     = InvoicePayment::whereIn('invoice_id', $invoices->pluck('id'))->sum('amount');
-        $due           = ($totalInvoiced + ($customer->opening_balance ?? 0)) - $totalPaid;
+        $totalInvoiced = $customer->totalInvoiced();
+        $totalPaid     = $customer->totalPaid();
+        $due           = $customer->totalDue();
         $accounts      = Account::active()->get();
 
         set_page_meta(__t('make_payment') . ' — ' . $customer->full_name);
@@ -44,17 +41,18 @@ class InvoicePaymentController extends Controller
         
         $request->validate([
             'date'         => 'required|date',
-            'payment_type' => 'required|string|max:100',
             'account_id'   => 'required|exists:accounts,id',
             'amount'       => 'required|numeric|min:0.01',
             'notes'        => 'nullable|string|max:500',
         ]);
 
+        // The account chosen is the payment method, so the label stored on the
+        // payment is taken from it. Asking for both let them contradict each other.
+        $account     = Account::findOrFail($request->account_id);
+        $paymentType = $this->paymentTypeForAccount($account);
+
         // Calculate total due for validation
-        $invoices = Invoice::where('customer_id', $customer->id)->get();
-        $totalInvoiced = $invoices->sum('total');
-        $totalPaid      = InvoicePayment::whereIn('invoice_id', $invoices->pluck('id'))->sum('amount');
-        $totalDue       = ($totalInvoiced + ($customer->opening_balance ?? 0)) - $totalPaid;
+        $totalDue = $customer->totalDue();
 
         if ($request->amount > $totalDue) {
             flash(__t('payment_amount_exceeds_due'))->error();
@@ -65,7 +63,7 @@ class InvoicePaymentController extends Controller
             \Illuminate\Support\Facades\Log::info("=== START CUSTOMER PAYMENT ===");
             \Illuminate\Support\Facades\Log::info("Processing payment for Customer: {$customer->full_name} (ID: {$customer->id}), Total Payment Amount: {$request->amount}");
             
-            DB::transaction(function () use ($request, $customer) {
+            DB::transaction(function () use ($request, $customer, $account, $paymentType) {
                 $paymentAmount = $request->amount;
                 // Get unpaid or partially paid invoices for this customer (FIFO by date)
                 $unpaidInvoices = Invoice::where('customer_id', $customer->id)
@@ -88,7 +86,7 @@ class InvoicePaymentController extends Controller
                     InvoicePayment::create([
                         'invoice_id'   => $invoice->id,
                         'date'         => $request->date,
-                        'payment_type' => $request->payment_type,
+                        'payment_type' => $paymentType,
                         'amount'       => $allocation,
                         'notes'        => $request->notes . " (Bulk Customer Payment)",
                         'created_by'   => auth()->id(),
@@ -104,14 +102,25 @@ class InvoicePaymentController extends Controller
                     }
                     $invoice->save();
 
+                    // Book the money per invoice, matching the payment row that was
+                    // just created. A single lump transaction could not be traced
+                    // back to one payment, so deleting a row reversed the wrong one.
+                    $account->recordInvoicePayment(
+                        (float) $allocation,
+                        $invoice->id,
+                        "Customer Bulk Payment: " . $customer->full_name
+                    );
+
                     $paymentAmount -= $allocation;
                     \Illuminate\Support\Facades\Log::info("Remaining Payment Amount after Invoice {$invoice->id} allocation: {$paymentAmount}");
                 }
 
                 if ($paymentAmount > 0) {
-                    \Illuminate\Support\Facades\Log::info("Allocating remaining {$paymentAmount} to Opening Balance. Previous Opening Balance: {$customer->opening_balance}");
-                    
-                    $customer->opening_balance -= $paymentAmount;
+                    \Illuminate\Support\Facades\Log::info("Crediting remaining {$paymentAmount} to Opening Balance. Previous Opening Balance: {$customer->opening_balance}");
+
+                    // Money received beyond the invoices it could be allocated to
+                    // is credit the customer now holds, so it is added, not taken.
+                    $customer->opening_balance += $paymentAmount;
                     $customer->save();
 
                     \Illuminate\Support\Facades\Log::info("New Opening Balance for Customer ID: {$customer->id} is now: {$customer->opening_balance}");
@@ -121,22 +130,22 @@ class InvoicePaymentController extends Controller
                         'customer_id'  => $customer->id,
                         'invoice_id'   => null,
                         'date'         => $request->date,
-                        'payment_type' => $request->payment_type,
+                        'payment_type' => $paymentType,
                         'amount'       => $paymentAmount,
                         'notes'        => $request->notes ? $request->notes . " (Opening Balance Payment)" : "Opening Balance Payment",
                         'created_by'   => auth()->id(),
                         'bank_info'    => ['bank_name' => $request->account_id]
                     ]);
+
+                    // The surplus is real money too — booked with no invoice
+                    // reference, which is how its payment row is matched on delete.
+                    $account->recordInvoicePayment(
+                        (float) $paymentAmount,
+                        null,
+                        "Customer Bulk Payment: " . $customer->full_name . " (credit)"
+                    );
                 }
 
-                // Add to account balance (total amount)
-                $account = Account::findOrFail($request->account_id);
-                $account->recordInvoicePayment(
-                    (float)$request->amount, 
-                    null, // No single invoice reference for the transaction if it's bulk
-                    "Customer Bulk Payment: " . $customer->full_name
-                );
-                
                 \Illuminate\Support\Facades\Log::info("Payment successfully recorded to Account ID: {$request->account_id}. === END CUSTOMER PAYMENT ===");
             });
 
@@ -147,6 +156,19 @@ class InvoicePaymentController extends Controller
             flash($e->getMessage())->error();
             return back()->withInput();
         }
+    }
+
+    /**
+     * The payment method label for an account. The account itself is the method,
+     * so this is derived rather than asked for — the two can never disagree.
+     */
+    private function paymentTypeForAccount(Account $account): string
+    {
+        return match ($account->type) {
+            Account::TYPE_CASH           => 'cash',
+            Account::TYPE_MOBILE_BANKING => 'mobile',
+            default                      => 'bank',
+        };
     }
 
     /**
@@ -163,13 +185,11 @@ class InvoicePaymentController extends Controller
                         ->orderBy('id', 'desc')
                         ->get();
         
-        $totalInvoiced = Invoice::where('customer_id', $customer->id)->sum('total');
-        $totalPaid      = $payments->sum('amount');
-        
-        $openingBalancePayments = $payments->whereNull('invoice_id')->sum('amount');
-        $originalOpeningBalance = ($customer->opening_balance ?? 0) + $openingBalancePayments;
-        
-        $due            = ($totalInvoiced + $originalOpeningBalance) - $totalPaid;
+        // The listing shows every payment received (including credit top-ups that
+        // belong to no invoice), while the due only counts invoice-linked ones.
+        $totalInvoiced = $customer->totalInvoiced();
+        $totalPaid     = $payments->sum('amount');
+        $due           = $customer->totalDue();
 
         set_page_meta(__t('payment_history') . ' — ' . $customer->full_name);
 
